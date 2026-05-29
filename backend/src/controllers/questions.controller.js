@@ -1,0 +1,364 @@
+import Question from '../models/Question.js';
+import Answer from '../models/Answer.js';
+import AuditLog from '../models/AuditLog.js';
+import { checkDuplicate, findSimilarQuestions } from '../services/duplicate.service.js';
+
+export const getQuestions = async (req, res, next) => {
+  try {
+    const { status = 'open', category, tag, cursor, limit = 20, sort = 'newest' } = req.query;
+
+    const query = { status: status };
+    
+    // Ensure we do not display soft-deleted questions to public unless requested by admin
+    if (status === 'deleted' && req.user?.role !== 'admin') {
+      return res.status(403).json({
+        success: false,
+        error: {
+          code: 'FORBIDDEN',
+          message: 'Forbidden: Access to deleted questions is restricted.'
+        }
+      });
+    }
+
+    if (category) query.category = category;
+    if (tag) query.tags = tag;
+
+    let sortConfig = { _id: -1 };
+    if (sort === 'oldest') {
+      sortConfig = { _id: 1 };
+      if (cursor) query._id = { $gt: cursor };
+    } else {
+      // Default to newest
+      if (cursor) query._id = { $lt: cursor };
+    }
+
+    if (sort === 'mostViewed') {
+      sortConfig = { views: -1, _id: -1 };
+      // For views cursor, it requires a compound cursor, but fallback to limit-based sorting for complex sort
+    } else if (sort === 'unanswered') {
+      query.linkedBestAnswerId = null;
+    }
+
+    const limitNum = parseInt(limit, 10) || 20;
+
+    const questions = await Question.find(query)
+      .populate('author', 'username name avatar role badgeLevel')
+      .populate('category', 'name')
+      .sort(sortConfig)
+      .limit(limitNum + 1);
+
+    const hasMore = questions.length > limitNum;
+    if (hasMore) questions.pop();
+
+    const nextCursor = questions.length > 0 ? questions[questions.length - 1]._id : null;
+    const total = await Question.countDocuments({ ...query, _id: { $exists: true } });
+
+    return res.status(200).json({
+      success: true,
+      data: questions,
+      meta: {
+        nextCursor,
+        hasMore,
+        total
+      }
+    });
+  } catch (error) {
+    next(error);
+  }
+};
+
+export const createQuestion = async (req, res, next) => {
+  try {
+    const { title, body, tags, category } = req.body;
+
+    // Trigger duplicate check (threshold 0.4)
+    const duplicateResult = await checkDuplicate(title, body, 0.4);
+    if (duplicateResult.isDuplicate) {
+      return res.status(409).json({
+        success: false,
+        error: {
+          code: 'DUPLICATE_QUESTION',
+          message: 'This question is too similar to an existing query.',
+          fields: {
+            duplicateId: duplicateResult.topMatch._id,
+            title: duplicateResult.topMatch.title,
+            score: duplicateResult.score
+          }
+        }
+      });
+    }
+
+    const newQuestion = new Question({
+      title,
+      body,
+      tags: tags || [],
+      category,
+      author: req.user.userId,
+      organizationId: req.user.organizationId || null,
+      status: 'unresolved'
+    });
+
+    await newQuestion.save();
+
+    return res.status(201).json({
+      success: true,
+      data: newQuestion
+    });
+  } catch (error) {
+    next(error);
+  }
+};
+
+export const getQuestionById = async (req, res, next) => {
+  try {
+    const { id } = req.params;
+
+    // View count bump (increment views)
+    const question = await Question.findByIdAndUpdate(
+      id,
+      { $inc: { views: 1 } },
+      { new: true }
+    )
+    .populate('author', 'username name avatar role badgeLevel')
+    .populate('category', 'name')
+    .populate('linkedBestAnswerId');
+
+    if (!question || question.status === 'deleted') {
+      return res.status(404).json({
+        success: false,
+        error: {
+          code: 'NOT_FOUND',
+          message: 'Question not found'
+        }
+      });
+    }
+
+    return res.status(200).json({
+      success: true,
+      data: question
+    });
+  } catch (error) {
+    next(error);
+  }
+};
+
+export const editQuestion = async (req, res, next) => {
+  try {
+    // req.resource is pre-fetched by requireOwnerOrRole middleware
+    const question = req.resource;
+    const { title, body, tags, category } = req.body;
+
+    if (title) question.title = title;
+    if (body) question.body = body;
+    if (tags) question.tags = tags;
+    if (category) question.category = category;
+
+    await question.save();
+
+    return res.status(200).json({
+      success: true,
+      data: question
+    });
+  } catch (error) {
+    next(error);
+  }
+};
+
+export const deleteQuestion = async (req, res, next) => {
+  try {
+    // req.resource is pre-fetched by requireOwnerOrRole middleware
+    const question = req.resource;
+    
+    // Soft-delete question
+    question.status = 'deleted';
+    await question.save();
+
+    // Log action if deleted by Admin/Mod
+    if (req.user.role !== 'user') {
+      await AuditLog.create({
+        action: 'delete_question',
+        performedBy: req.user.userId,
+        targetType: 'question',
+        targetId: question._id,
+        details: { title: question.title }
+      });
+    }
+
+    return res.status(204).send();
+  } catch (error) {
+    next(error);
+  }
+};
+
+export const changeQuestionStatus = async (req, res, next) => {
+  try {
+    const { id } = req.params;
+    const { status } = req.body;
+
+    if (!['open', 'resolved', 'closed'].includes(status)) {
+      return res.status(400).json({
+        success: false,
+        error: {
+          code: 'VALIDATION_ERROR',
+          message: 'Invalid status value'
+        }
+      });
+    }
+
+    const question = await Question.findByIdAndUpdate(
+      id,
+      { status },
+      { new: true }
+    );
+
+    if (!question) {
+      return res.status(404).json({
+        success: false,
+        error: {
+          code: 'NOT_FOUND',
+          message: 'Question not found'
+        }
+      });
+    }
+
+    await AuditLog.create({
+      action: 'change_question_status',
+      performedBy: req.user.userId,
+      targetType: 'question',
+      targetId: question._id,
+      details: { status }
+    });
+
+    return res.status(200).json({
+      success: true,
+      data: question
+    });
+  } catch (error) {
+    next(error);
+  }
+};
+
+export const promoteQuestionToFAQ = async (req, res, next) => {
+  try {
+    const { id } = req.params;
+
+    const question = await Question.findById(id);
+    if (!question) {
+      return res.status(404).json({
+        success: false,
+        error: {
+          code: 'NOT_FOUND',
+          message: 'Question not found'
+        }
+      });
+    }
+
+    // A question needs a linkedBestAnswerId to be promoted to FAQ
+    if (!question.linkedBestAnswerId) {
+      return res.status(400).json({
+        success: false,
+        error: {
+          code: 'VALIDATION_ERROR',
+          message: 'Question must have a verified best answer before FAQ promotion'
+        }
+      });
+    }
+
+    question.isFAQ = true;
+    question.status = 'resolved';
+    question.acceptedAnswerId = question.linkedBestAnswerId;
+    await question.save();
+
+    await AuditLog.create({
+      action: 'promote_faq',
+      performedBy: req.user.userId,
+      targetType: 'question',
+      targetId: question._id,
+      details: { title: question.title }
+    });
+
+    return res.status(200).json({
+      success: true,
+      data: question
+    });
+  } catch (error) {
+    next(error);
+  }
+};
+
+export const revertFAQ = async (req, res, next) => {
+  try {
+    const { id } = req.params;
+
+    const question = await Question.findByIdAndUpdate(
+      id,
+      { isFAQ: false },
+      { new: true }
+    );
+
+    if (!question) {
+      return res.status(404).json({
+        success: false,
+        error: {
+          code: 'NOT_FOUND',
+          message: 'Question not found'
+        }
+      });
+    }
+
+    await AuditLog.create({
+      action: 'revert_faq',
+      performedBy: req.user.userId,
+      targetType: 'question',
+      targetId: question._id,
+      details: { title: question.title }
+    });
+
+    return res.status(200).json({
+      success: true,
+      data: question
+    });
+  } catch (error) {
+    next(error);
+  }
+};
+
+export const getFAQs = async (req, res, next) => {
+  try {
+    const questions = await Question.find({ isFAQ: true, status: { $ne: 'deleted' } })
+      .populate('author', 'username name avatar')
+      .populate('category', 'name')
+      .populate('linkedBestAnswerId')
+      .sort({ createdAt: -1 });
+
+    return res.status(200).json({
+      success: true,
+      data: questions
+    });
+  } catch (error) {
+    next(error);
+  }
+};
+
+export const getSimilarQuestions = async (req, res, next) => {
+  try {
+    const { title, body } = req.query;
+    if (!title) {
+      return res.status(400).json({
+        success: false,
+        error: {
+          code: 'VALIDATION_ERROR',
+          message: 'Title is required for similarity checks'
+        }
+      });
+    }
+
+    const matches = await findSimilarQuestions(title, body || '');
+    return res.status(200).json({
+      success: true,
+      data: matches.slice(0, 5) // Return top 5 matches
+    });
+  } catch (error) {
+    next(error);
+  }
+};
