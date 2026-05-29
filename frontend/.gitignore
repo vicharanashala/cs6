@@ -25,3 +25,5 @@ dist-ssr
 
 ./samagama_faq.json
 ./brain/**
+
+.env
