@@ -24,4 +24,4 @@ dist-ssr
 *.sw?
 
 ./samagama_faq.json
-./brain
+./brain/**
