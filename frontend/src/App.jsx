@@ -19,6 +19,7 @@ function App() {
   // Modals state
   const [isAuthOpen, setIsAuthOpen] = useState(false);
   const [isQuestionOpen, setIsQuestionOpen] = useState(false);
+  const [activeDraft, setActiveDraft] = useState(null);
 
   useEffect(() => {
     // Load authentication context
@@ -56,10 +57,11 @@ function App() {
     setViewState("home");
   };
 
-  const handleAskQuestionClick = () => {
+  const handleAskQuestionClick = (draft) => {
     if (!currentUser) {
       setIsAuthOpen(true);
     } else {
+      setActiveDraft(draft || null);
       setIsQuestionOpen(true);
     }
   };
@@ -136,11 +138,17 @@ function App() {
 
       <QuestionModal 
         isOpen={isQuestionOpen}
-        onClose={() => setIsQuestionOpen(false)}
+        onClose={() => {
+          setIsQuestionOpen(false);
+          setActiveDraft(null);
+        }}
         categories={categories}
+        draft={activeDraft}
+        currentUser={currentUser}
         onQuestionCreated={(newQ) => {
           // Re-fetch categories to update counts on home
           fetchCategories();
+          setActiveDraft(null);
           // Navigate to the category of the new question
           const matchCat = categories.find(c => c._id === newQ.category);
           if (matchCat) {

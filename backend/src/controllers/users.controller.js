@@ -89,7 +89,12 @@ export const getUserAnswers = async (req, res, next) => {
     const { id } = req.params;
     const { limit = 20, cursor } = req.query;
 
-    const query = { author: id, status: 'visible' };
+    const query = { author: id };
+    if (req.user && (req.user.userId === id || req.user.role === 'admin')) {
+      query.status = { $ne: 'deleted' };
+    } else {
+      query.status = 'visible';
+    }
     if (cursor) {
       query._id = { $lt: cursor };
     }

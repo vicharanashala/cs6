@@ -1,8 +1,8 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { X, HelpCircle, FileText, Tag, ChevronRight } from "lucide-react";
 import api from "../api/axios";
 
-const QuestionModal = ({ isOpen, onClose, categories = [], onQuestionCreated }) => {
+const QuestionModal = ({ isOpen, onClose, categories = [], onQuestionCreated, draft, currentUser }) => {
   const [formData, setFormData] = useState({
     title: "",
     body: "",
@@ -12,6 +12,27 @@ const QuestionModal = ({ isOpen, onClose, categories = [], onQuestionCreated }) 
   const [error, setError] = useState(null);
   const [loading, setLoading] = useState(false);
 
+  useEffect(() => {
+    if (isOpen) {
+      if (draft) {
+        setFormData({
+          title: draft.title || "",
+          body: draft.body || "",
+          tags: draft.tags || "",
+          category: draft.category || ""
+        });
+      } else {
+        setFormData({
+          title: "",
+          body: "",
+          tags: "",
+          category: ""
+        });
+      }
+      setError(null);
+    }
+  }, [isOpen, draft]);
+
   if (!isOpen) return null;
 
   const handleChange = (e) => {
@@ -20,6 +41,35 @@ const QuestionModal = ({ isOpen, onClose, categories = [], onQuestionCreated }) 
       [e.target.name]: e.target.value
     });
     setError(null);
+  };
+
+  const handleSaveDraft = () => {
+    if (!currentUser?._id) {
+      setError({ message: "You must be logged in to save drafts." });
+      return;
+    }
+    const draftsKey = `drafts_${currentUser._id}`;
+    const draftsList = JSON.parse(localStorage.getItem(draftsKey) || "[]");
+
+    const draftId = draft?._id || `draft_${Date.now()}`;
+    const draftData = {
+      _id: draftId,
+      title: formData.title,
+      body: formData.body,
+      category: formData.category,
+      tags: formData.tags,
+      createdAt: draft?.createdAt || new Date().toISOString()
+    };
+
+    const existingIndex = draftsList.findIndex(d => d._id === draftId);
+    if (existingIndex > -1) {
+      draftsList[existingIndex] = draftData;
+    } else {
+      draftsList.push(draftData);
+    }
+
+    localStorage.setItem(draftsKey, JSON.stringify(draftsList));
+    onClose();
   };
 
   const handleSubmit = async (e) => {
@@ -58,6 +108,12 @@ const QuestionModal = ({ isOpen, onClose, categories = [], onQuestionCreated }) 
       });
 
       if (response.data.success) {
+        if (draft?._id && currentUser?._id) {
+          const draftsKey = `drafts_${currentUser._id}`;
+          const drafts = JSON.parse(localStorage.getItem(draftsKey) || "[]");
+          const updated = drafts.filter(d => d._id !== draft._id);
+          localStorage.setItem(draftsKey, JSON.stringify(updated));
+        }
         onQuestionCreated(response.data.data);
         onClose();
         // Reset form
@@ -212,15 +268,24 @@ const QuestionModal = ({ isOpen, onClose, categories = [], onQuestionCreated }) 
             </p>
           </div>
 
-          {/* Submit */}
-          <button
-            type="submit"
-            disabled={loading}
-            className="w-full rounded-lg bg-gradient-to-r from-primary-500 to-indigo-600 py-2.5 text-sm font-semibold text-white shadow-lg shadow-primary-500/20 hover:brightness-110 active:scale-95 transition-all duration-300 disabled:opacity-50 flex items-center justify-center gap-1.5"
-          >
-            {loading ? "Submitting..." : "Submit Question"}
-            <ChevronRight size={16} />
-          </button>
+          {/* Submit and Save Draft Actions */}
+          <div className="flex gap-3 pt-2">
+            <button
+              type="button"
+              onClick={handleSaveDraft}
+              className="flex-1 rounded-lg border border-white/10 bg-surface hover:bg-surface-lighter py-2.5 text-sm font-semibold text-gray-300 hover:text-white transition-all duration-200"
+            >
+              Save as Draft
+            </button>
+            <button
+              type="submit"
+              disabled={loading}
+              className="flex-[2] rounded-lg bg-gradient-to-r from-primary-500 to-indigo-600 py-2.5 text-sm font-semibold text-white shadow-lg shadow-primary-500/20 hover:brightness-110 active:scale-95 transition-all duration-300 disabled:opacity-50 flex items-center justify-center gap-1.5"
+            >
+              {loading ? "Submitting..." : "Submit Question"}
+              <ChevronRight size={16} />
+            </button>
+          </div>
         </form>
 
       </div>

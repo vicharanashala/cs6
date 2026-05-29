@@ -10,15 +10,15 @@ import {
   deactivateUser 
 } from "../controllers/users.controller.js";
 import { validateRequest } from "../middlewares/validate.js";
-import authMiddleware from "../middlewares/authMiddleware.js";
+import authMiddleware, { optionalAuthMiddleware } from "../middlewares/authMiddleware.js";
 import { requireRole } from "../middlewares/roleMiddleware.js";
 
 const router = Router();
 
 // Public routes
-router.get("/:id/profile", getUserProfile);
-router.get("/:id/questions", getUserQuestions);
-router.get("/:id/answers", getUserAnswers);
+router.get("/:id/profile", optionalAuthMiddleware, getUserProfile);
+router.get("/:id/questions", optionalAuthMiddleware, getUserQuestions);
+router.get("/:id/answers", optionalAuthMiddleware, getUserAnswers);
 
 // User-only editing routes
 router.patch(

@@ -17,6 +17,8 @@ const MyProfile = ({ currentUser, onBack, onQuestionClick, onAskClick }) => {
   const [categories, setCategories] = useState([]);
   const [allFaqs, setAllFaqs] = useState([]);
   const [submissions, setSubmissions] = useState([]);
+  const [userAnswers, setUserAnswers] = useState([]);
+  const [submissionsSubTab, setSubmissionsSubTab] = useState("questions");
   const [approvedList, setApprovedList] = useState([]);
   const [approvedAnswersList, setApprovedAnswersList] = useState([]);
   const [rejectedList, setRejectedList] = useState([]);
@@ -208,8 +210,10 @@ const MyProfile = ({ currentUser, onBack, onQuestionClick, onAskClick }) => {
         if (response.data.success) setCategories(response.data.data || []);
       } else if (activeTab === "submissions") {
         // Fetch submissions by this user
-        const response = await api.get(`/users/${currentUser._id}/questions`);
-        if (response.data.success) setSubmissions(response.data.data || []);
+        const qResponse = await api.get(`/users/${currentUser._id}/questions`);
+        const aResponse = await api.get(`/users/${currentUser._id}/answers`);
+        if (qResponse.data.success) setSubmissions(qResponse.data.data || []);
+        if (aResponse.data.success) setUserAnswers(aResponse.data.data || []);
       } else if (activeTab === "approved") {
         // Fetch resolved/approved FAQs
         const response = await api.get("/moderation/queue/resolved");
@@ -1321,39 +1325,118 @@ const MyProfile = ({ currentUser, onBack, onQuestionClick, onAskClick }) => {
 
             {/* SUB-VIEW: MY SUBMISSIONS */}
             {activeTab === "submissions" && (
-              <div className="space-y-6">
+              <div className="space-y-6 font-sans">
                 <div>
                   <h2 className="text-xl font-bold text-white mb-2">My Submissions</h2>
-                  <p className="text-xs text-gray-500">View questions submitted by your coordinator profile.</p>
+                  <p className="text-xs text-gray-500">View questions and answers submitted by your profile.</p>
+                </div>
+
+                {/* Sub-tabs selector */}
+                <div className="flex border-b border-white/10 gap-6 mb-2">
+                  <button
+                    onClick={() => setSubmissionsSubTab("questions")}
+                    className={`pb-2.5 text-sm font-bold border-b-2 transition-all duration-200 ${
+                      submissionsSubTab === "questions"
+                        ? "border-primary-500 text-primary-400"
+                        : "border-transparent text-gray-400 hover:text-white"
+                    }`}
+                  >
+                    Questions ({submissions.length})
+                  </button>
+                  <button
+                    onClick={() => setSubmissionsSubTab("answers")}
+                    className={`pb-2.5 text-sm font-bold border-b-2 transition-all duration-200 ${
+                      submissionsSubTab === "answers"
+                        ? "border-primary-500 text-primary-400"
+                        : "border-transparent text-gray-400 hover:text-white"
+                    }`}
+                  >
+                    Answers ({userAnswers.length})
+                  </button>
                 </div>
 
                 <div className="rounded-2xl border border-white/10 bg-surface-light p-6 shadow-xl">
-                  {submissions.length === 0 ? (
-                    <div className="rounded-xl border border-dashed border-white/10 bg-surface/30 p-12 text-center text-gray-500">
-                      You haven't posted any questions yet.
-                    </div>
-                  ) : (
-                    <div className="space-y-3">
-                      {submissions.map((q) => (
-                        <div 
-                          key={q._id}
-                          onClick={() => onQuestionClick(q)}
-                          className="rounded-xl border border-white/5 bg-surface p-4 hover:border-white/10 hover:bg-surface-lighter cursor-pointer transition-all duration-200 flex items-center justify-between gap-4"
-                        >
-                          <div className="min-w-0 flex-1">
-                            <h4 className="text-sm font-bold text-white hover:text-primary-300 truncate mb-1">{q.title}</h4>
-                            <p className="text-[10px] text-gray-500">Category: {q.category?.name} • Created: {new Date(q.createdAt).toLocaleDateString()}</p>
+                  {submissionsSubTab === "questions" ? (
+                    submissions.length === 0 ? (
+                      <div className="rounded-xl border border-dashed border-white/10 bg-surface/30 p-12 text-center text-gray-500">
+                        You haven't posted any questions yet.
+                      </div>
+                    ) : (
+                      <div className="space-y-3">
+                        {submissions.map((q) => (
+                          <div 
+                            key={q._id}
+                            onClick={() => onQuestionClick(q)}
+                            className="rounded-xl border border-white/5 bg-surface p-4 hover:border-white/10 hover:bg-surface-lighter cursor-pointer transition-all duration-200 flex items-center justify-between gap-4"
+                          >
+                            <div className="min-w-0 flex-1">
+                              <h4 className="text-sm font-bold text-white hover:text-primary-300 truncate mb-1">{q.title}</h4>
+                              <p className="text-[10px] text-gray-500">Category: {q.category?.name} • Created: {new Date(q.createdAt).toLocaleDateString()}</p>
+                            </div>
+                            <span className={`inline-flex rounded-full px-2 py-0.5 text-[9px] font-bold uppercase ${
+                              q.status === 'resolved' 
+                                ? 'bg-emerald-500/10 text-emerald-400 border border-emerald-500/20'
+                                : 'bg-amber-500/10 text-amber-400 border border-amber-500/20'
+                            }`}>
+                              {q.status}
+                            </span>
                           </div>
-                          <span className={`inline-flex rounded-full px-2 py-0.5 text-[9px] font-bold uppercase ${
-                            q.status === 'resolved' 
-                              ? 'bg-emerald-500/10 text-emerald-400 border border-emerald-500/20'
-                              : 'bg-amber-500/10 text-amber-400 border border-amber-500/20'
-                          }`}>
-                            {q.status}
-                          </span>
-                        </div>
-                      ))}
-                    </div>
+                        ))}
+                      </div>
+                    )
+                  ) : (
+                    userAnswers.length === 0 ? (
+                      <div className="rounded-xl border border-dashed border-white/10 bg-surface/30 p-12 text-center text-gray-500">
+                        You haven't contributed any answers yet.
+                      </div>
+                    ) : (
+                      <div className="space-y-4">
+                        {userAnswers.map((ans) => {
+                          const statusColor = 
+                            ans.status === "visible" 
+                              ? "bg-emerald-500/10 text-emerald-400 border border-emerald-500/20" 
+                              : ans.status === "rejected" 
+                              ? "bg-red-500/10 text-red-400 border border-red-500/20" 
+                              : "bg-amber-500/10 text-amber-400 border border-amber-500/20";
+                          const statusLabel = 
+                            ans.status === "visible" 
+                              ? "Approved" 
+                              : ans.status === "rejected" 
+                              ? "Rejected" 
+                              : "Pending Moderation";
+
+                          return (
+                            <div 
+                              key={ans._id} 
+                              className="rounded-xl border border-white/5 bg-surface p-4 flex flex-col gap-3"
+                            >
+                              <div className="flex justify-between items-start flex-wrap gap-2 text-[10px] text-gray-500 border-b border-white/5 pb-2">
+                                <span>For Question: <strong 
+                                  onClick={() => ans.questionId && onQuestionClick(ans.questionId)} 
+                                  className="text-primary-400 hover:underline cursor-pointer"
+                                >
+                                  {ans.questionId?.title || "View Question"}
+                                </strong></span>
+                                <span>Posted: {new Date(ans.createdAt).toLocaleDateString()}</span>
+                              </div>
+                              <div className="text-xs text-gray-300 whitespace-pre-wrap pl-1 font-sans leading-relaxed">
+                                {ans.body}
+                              </div>
+                              <div className="flex justify-between items-center mt-1 pt-2 border-t border-white/5">
+                                <span className={`inline-flex rounded-full px-2 py-0.5 text-[9px] font-bold uppercase ${statusColor}`}>
+                                  {statusLabel}
+                                </span>
+                                {ans.isBestAnswer && (
+                                  <span className="inline-flex items-center gap-1 text-[10px] font-bold text-emerald-400 uppercase tracking-wider">
+                                    🏆 Best Answer
+                                  </span>
+                                )}
+                              </div>
+                            </div>
+                          );
+                        })}
+                      </div>
+                    )
                   )}
                 </div>
               </div>

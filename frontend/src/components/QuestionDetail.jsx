@@ -2,7 +2,7 @@ import { useState, useEffect } from "react";
 import { 
   ArrowLeft, MessageSquare, ThumbsUp, ThumbsDown, Check, Award, 
   Send, CheckCircle2, User as UserIcon, Edit, Trash2, X, 
-  ChevronUp, ChevronDown, ShieldAlert 
+  ChevronUp, ChevronDown, ShieldAlert, Bookmark 
 } from "lucide-react";
 import api from "../api/axios";
 
@@ -29,13 +29,56 @@ const QuestionDetail = ({ question, onBack, currentUser, onAuthRequired }) => {
   // General message feedback
   const [feedbackMsg, setFeedbackMsg] = useState("");
 
+  const [isSaved, setIsSaved] = useState(false);
+
   useEffect(() => {
+    if (currentUser?._id && currentQuestion?._id) {
+      const saved = localStorage.getItem(`saved_faqs_${currentUser._id}`);
+      const savedList = saved ? JSON.parse(saved) : [];
+      setIsSaved(savedList.some(item => item._id === currentQuestion._id));
+    }
+  }, [currentUser, currentQuestion]);
+
+  const handleToggleSave = () => {
+    if (!currentUser) {
+      onAuthRequired();
+      return;
+    }
+    const savedKey = `saved_faqs_${currentUser._id}`;
+    const saved = localStorage.getItem(savedKey);
+    let savedList = saved ? JSON.parse(saved) : [];
+    const exists = savedList.some(item => item._id === currentQuestion._id);
+    if (exists) {
+      savedList = savedList.filter(item => item._id !== currentQuestion._id);
+      setIsSaved(false);
+      setFeedbackMsg("FAQ removed from saved list.");
+    } else {
+      savedList.push(currentQuestion);
+      setIsSaved(true);
+      setFeedbackMsg("FAQ bookmarked successfully!");
+    }
+    localStorage.setItem(savedKey, JSON.stringify(savedList));
+  };
+
+  useEffect(() => {
+    fetchQuestionDetails();
     fetchAnswers();
-  }, [currentQuestion._id]);
+  }, [question._id]);
+
+  const fetchQuestionDetails = async () => {
+    try {
+      const response = await api.get(`/questions/${question._id}`);
+      if (response.data.success) {
+        setCurrentQuestion(response.data.data);
+      }
+    } catch (error) {
+      console.error("Error fetching question details:", error);
+    }
+  };
 
   const fetchAnswers = async () => {
     try {
-      const response = await api.get(`/questions/${currentQuestion._id}/answers`);
+      const response = await api.get(`/questions/${question._id}/answers`);
       if (response.data.success) {
         setAnswers(response.data.data || []);
       }
@@ -382,9 +425,24 @@ const QuestionDetail = ({ question, onBack, currentUser, onAuthRequired }) => {
               </span>
             </div>
 
-            <h1 className="text-2xl sm:text-3xl font-bold text-white tracking-tight mb-4">
-              {currentQuestion.title}
-            </h1>
+            <div className="flex justify-between items-start gap-4 mb-4">
+              <h1 className="text-2xl sm:text-3xl font-bold text-white tracking-tight">
+                {currentQuestion.title}
+              </h1>
+              {currentUser && (
+                <button
+                  onClick={handleToggleSave}
+                  className={`p-2.5 rounded-xl border transition-colors shrink-0 ${
+                    isSaved 
+                      ? "bg-amber-500/15 border-amber-500/30 text-amber-400 hover:bg-amber-500/25" 
+                      : "bg-surface border-white/5 text-gray-400 hover:text-white hover:border-white/10"
+                  }`}
+                  title={isSaved ? "Remove Bookmark" : "Save / Bookmark FAQ"}
+                >
+                  <Bookmark size={18} className={isSaved ? "fill-amber-400" : ""} />
+                </button>
+              )}
+            </div>
 
             <p className="text-gray-300 text-sm sm:text-base leading-relaxed mb-6 whitespace-pre-wrap">
               {currentQuestion.body}
