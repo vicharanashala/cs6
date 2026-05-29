@@ -1276,6 +1276,23 @@ const MyProfile = ({ currentUser, onBack, onQuestionClick, onAskClick, initialTa
                             <span>Reason: {report.type}</span>
                             <span className="font-bold text-red-400">Severity: {report.aiSeverity}</span>
                           </div>
+                          <div className="flex items-center justify-between text-[10px] text-gray-400 px-1">
+                            <span>Flagged By:</span>
+                            {report.reportedBy ? (
+                              <span className="font-semibold text-gray-300">
+                                User ({report.reportedBy.name || report.reportedBy.username})
+                              </span>
+                            ) : (
+                              <span className="inline-flex items-center gap-1 rounded bg-indigo-500/15 text-indigo-300 border border-indigo-500/30 px-2 py-0.5 font-bold uppercase tracking-wider text-[9px]">
+                                AI Auto-Moderation
+                              </span>
+                            )}
+                          </div>
+                          {report.description && (
+                            <div className="text-[10px] text-gray-400 italic px-1 bg-surface-light/40 py-1.5 rounded border border-white/5">
+                              <span className="font-semibold not-italic text-gray-500 mr-1">Details:</span> {report.description}
+                            </div>
+                          )}
                           <div className="bg-surface-light p-3 rounded text-xs text-gray-300">
                             <p className="line-clamp-2">"{report.targetId?.body || report.targetId?.title || "[Content Unavailable]"}"</p>
                           </div>
