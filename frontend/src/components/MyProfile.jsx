@@ -482,8 +482,8 @@ const MyProfile = ({ currentUser, onBack, onQuestionClick, onAskClick, initialTa
   // Total pending reviews count for pill badge (Flagged reports + answered questions with pending responses)
   const pendingCount = flaggedQueue.length + answeredQueue.length;
 
-  // Student Layout handled by unified sidebar layout below
-
+  const isAssignee = selectedTicketData?.ticket?.assignedTo?._id === currentUser?._id;
+  const isUnassigned = !selectedTicketData?.ticket?.assignedTo;
 
   // Render Sidebar Layout for Admin / Student
   return (
@@ -1902,16 +1902,22 @@ const MyProfile = ({ currentUser, onBack, onQuestionClick, onAskClick, initialTa
                           
                           <div className="flex items-center gap-2">
                             <span className="text-xs text-gray-400 font-semibold uppercase">Status:</span>
-                            <select
-                              value={selectedTicketData.ticket.status}
-                              onChange={(e) => handleUpdateStatus(e.target.value)}
-                              disabled={updatingTicketStatus}
-                              className="rounded-lg border border-white/10 bg-surface py-1.5 px-3 text-xs text-white focus:outline-none focus:border-primary-500"
-                            >
-                              <option value="open">Open</option>
-                              <option value="in_progress">In Progress</option>
-                              <option value="resolved">Resolved</option>
-                            </select>
+                            {isAssignee || isUnassigned ? (
+                              <select
+                                value={selectedTicketData.ticket.status}
+                                onChange={(e) => handleUpdateStatus(e.target.value)}
+                                disabled={updatingTicketStatus}
+                                className="rounded-lg border border-white/10 bg-surface py-1.5 px-3 text-xs text-white focus:outline-none focus:border-primary-500"
+                              >
+                                <option value="open">Open</option>
+                                <option value="in_progress">In Progress</option>
+                                <option value="resolved">Resolved</option>
+                              </select>
+                            ) : (
+                              <span className="text-xs text-gray-300 font-bold uppercase py-1 px-3 bg-white/5 border border-white/10 rounded-lg">
+                                {statusMap[selectedTicketData.ticket.status] || selectedTicketData.ticket.status}
+                              </span>
+                            )}
                           </div>
                         </div>
                       </div>
@@ -2007,26 +2013,32 @@ const MyProfile = ({ currentUser, onBack, onQuestionClick, onAskClick, initialTa
                         </div>
 
                         {/* Reply form */}
-                        <form onSubmit={handleReplySubmit} className="rounded-xl border border-white/10 bg-surface p-4 space-y-3">
-                          <textarea
-                            value={newReplyText}
-                            onChange={(e) => setNewReplyText(e.target.value)}
-                            required
-                            rows={3}
-                            placeholder="Type a message to reply..."
-                            className="w-full rounded-lg border border-white/10 bg-surface-light py-2 px-3 text-sm text-white placeholder-gray-600 focus:border-primary-500 focus:outline-none resize-none"
-                          />
-                          <div className="flex justify-end">
-                            <button
-                              type="submit"
-                              disabled={submittingReply}
-                              className="rounded-lg bg-primary-500 hover:bg-primary-600 disabled:opacity-50 px-4 py-2 text-xs font-semibold text-white flex items-center gap-1.5 transition-colors"
-                            >
-                              {submittingReply ? <Loader2 size={12} className="animate-spin" /> : <Send size={12} />}
-                              Send Reply
-                            </button>
+                        {isStudent || isAssignee || isUnassigned ? (
+                          <form onSubmit={handleReplySubmit} className="rounded-xl border border-white/10 bg-surface p-4 space-y-3">
+                            <textarea
+                              value={newReplyText}
+                              onChange={(e) => setNewReplyText(e.target.value)}
+                              required
+                              rows={3}
+                              placeholder="Type a message to reply..."
+                              className="w-full rounded-lg border border-white/10 bg-surface-light py-2 px-3 text-sm text-white placeholder-gray-600 focus:border-primary-500 focus:outline-none resize-none"
+                            />
+                            <div className="flex justify-end">
+                              <button
+                                type="submit"
+                                disabled={submittingReply}
+                                className="rounded-lg bg-primary-500 hover:bg-primary-600 disabled:opacity-50 px-4 py-2 text-xs font-semibold text-white flex items-center gap-1.5 transition-colors"
+                              >
+                                {submittingReply ? <Loader2 size={12} className="animate-spin" /> : <Send size={12} />}
+                                Send Reply
+                              </button>
+                            </div>
+                          </form>
+                        ) : (
+                          <div className="rounded-xl border border-amber-500/10 bg-amber-500/5 p-4 text-center text-xs text-amber-400">
+                            This ticket is assigned to another moderator/admin. Only the assignee can reply or solve this ticket.
                           </div>
-                        </form>
+                        )}
                       </div>
 
                       {/* Ticket Details Info Sidebar */}
