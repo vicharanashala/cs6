@@ -7,7 +7,8 @@ import {
   updateMe, 
   listUsers, 
   changeUserRole, 
-  deactivateUser 
+  deactivateUser,
+  listStaff
 } from "../controllers/users.controller.js";
 import { validateRequest } from "../middlewares/validate.js";
 import authMiddleware, { optionalAuthMiddleware } from "../middlewares/authMiddleware.js";
@@ -16,6 +17,7 @@ import { requireRole } from "../middlewares/roleMiddleware.js";
 const router = Router();
 
 // Public routes
+router.get("/staff", authMiddleware, requireRole(["moderator", "admin"]), listStaff);
 router.get("/:id/profile", optionalAuthMiddleware, getUserProfile);
 router.get("/:id/questions", optionalAuthMiddleware, getUserQuestions);
 router.get("/:id/answers", optionalAuthMiddleware, getUserAnswers);

@@ -20,6 +20,7 @@ function App() {
   const [isAuthOpen, setIsAuthOpen] = useState(false);
   const [isQuestionOpen, setIsQuestionOpen] = useState(false);
   const [activeDraft, setActiveDraft] = useState(null);
+  const [initialTab, setInitialTab] = useState(null);
 
   useEffect(() => {
     // Load authentication context
@@ -84,8 +85,16 @@ function App() {
         onRegisterClick={() => setIsAuthOpen(true)}
         onAskClick={handleAskQuestionClick}
         onLogout={handleLogout}
-        onProfileClick={() => setViewState("profile")}
+        onProfileClick={() => { setInitialTab(null); setViewState("profile"); }}
         onHomeClick={() => setViewState("home")}
+        onTroubleshootClick={() => {
+          if (!currentUser) {
+            setIsAuthOpen(true);
+          } else {
+            setInitialTab("support");
+            setViewState("profile");
+          }
+        }}
       />
 
       {/* Main Content Router */}
@@ -140,6 +149,7 @@ function App() {
               setViewState("question");
             }}
             onAskClick={handleAskQuestionClick}
+            initialTab={initialTab}
           />
         )}
       </main>

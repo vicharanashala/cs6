@@ -198,6 +198,20 @@ export const listUsers = async (req, res, next) => {
   }
 };
 
+export const listStaff = async (req, res, next) => {
+  try {
+    const staff = await User.find({ role: { $in: ['moderator', 'admin'] } })
+      .select('username name role avatar')
+      .sort({ name: 1, username: 1 });
+    return res.status(200).json({
+      success: true,
+      data: staff
+    });
+  } catch (error) {
+    next(error);
+  }
+};
+
 export const changeUserRole = async (req, res, next) => {
   try {
     const { id } = req.params;

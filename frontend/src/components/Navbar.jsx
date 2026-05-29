@@ -1,6 +1,6 @@
-import { HelpCircle, LogOut, User as UserIcon } from "lucide-react";
+import { HelpCircle, LogOut, User as UserIcon, Wrench } from "lucide-react";
 
-const Navbar = ({ currentUser, onLoginClick, onRegisterClick, onAskClick, onLogout, onProfileClick, onHomeClick }) => {
+const Navbar = ({ currentUser, onLoginClick, onRegisterClick, onAskClick, onLogout, onProfileClick, onHomeClick, onTroubleshootClick }) => {
   return (
     <nav className="sticky top-0 z-50 border-b border-white/10 bg-surface/80 backdrop-blur-xl">
       <div className="mx-auto flex max-w-6xl items-center justify-between px-6 py-4">
@@ -28,6 +28,16 @@ const Navbar = ({ currentUser, onLoginClick, onRegisterClick, onAskClick, onLogo
             <HelpCircle size={14} />
             Submit a Question
           </button>
+
+          {currentUser && (
+            <button
+              onClick={onTroubleshootClick}
+              className="flex items-center gap-1.5 rounded-lg border border-amber-500/20 bg-amber-500/10 py-2 px-3.5 text-xs font-semibold text-amber-300 hover:bg-amber-500/20 transition-colors"
+            >
+              <Wrench size={14} />
+              Troubleshooting
+            </button>
+          )}
 
           {currentUser ? (
             <div className="flex items-center gap-3 sm:gap-4 border-l border-white/10 pl-4 sm:pl-6">

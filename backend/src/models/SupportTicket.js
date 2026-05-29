@@ -14,6 +14,11 @@ const supportTicketSchema = new mongoose.Schema({
     minlength: 20,
     maxlength: 2000
   },
+  category: {
+    type: String,
+    enum: ['technical', 'login', 'other'],
+    default: 'other'
+  },
   createdBy: {
     type: mongoose.Schema.Types.ObjectId,
     ref: 'User',

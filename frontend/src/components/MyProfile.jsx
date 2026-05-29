@@ -1,17 +1,35 @@
 import { useState, useEffect } from "react";
 import { 
   Home as HomeIcon, MessageSquare, Folder, PlusCircle, FileText, 
-  Clock, CheckCircle, XCircle, Settings, Headphones, ChevronDown, 
+  Clock, CheckCircle, XCircle, Settings, Headphones, ChevronDown, Wrench, 
   Award, Shield, Mail, Calendar, ChevronRight, Eye, Check, X, 
   AlertTriangle, Save, Loader2, Send, ArrowLeft, GraduationCap,
   Flame, Sun, Bookmark, Edit3, Bell, User as UserIcon, Trash
 } from "lucide-react";
 import api from "../api/axios";
 
-const MyProfile = ({ currentUser, onBack, onQuestionClick, onAskClick }) => {
+const categoryMap = {
+  technical: "Technical Issue",
+  login: "Login Issue",
+  other: "Other"
+};
+
+const statusMap = {
+  open: "Open",
+  in_progress: "In Progress",
+  resolved: "Resolved"
+};
+
+const MyProfile = ({ currentUser, onBack, onQuestionClick, onAskClick, initialTab }) => {
   const [profile, setProfile] = useState(null);
   const [loadingProfile, setLoadingProfile] = useState(true);
   const [activeTab, setActiveTab] = useState(currentUser?.role === "admin" ? "pending" : "home");
+
+  useEffect(() => {
+    if (initialTab) {
+      setActiveTab(initialTab);
+    }
+  }, [initialTab]);
   
   // Sub-view data states
   const [categories, setCategories] = useState([]);
@@ -48,7 +66,15 @@ const MyProfile = ({ currentUser, onBack, onQuestionClick, onAskClick }) => {
   // Ticket form states
   const [ticketTitle, setTicketTitle] = useState("");
   const [ticketDesc, setTicketDesc] = useState("");
+  const [ticketCategory, setTicketCategory] = useState("other");
+  const [ticketAttachment, setTicketAttachment] = useState(null);
+  const [selectedTicketId, setSelectedTicketId] = useState(null);
+  const [selectedTicketData, setSelectedTicketData] = useState(null);
+  const [newReplyText, setNewReplyText] = useState("");
+  const [submittingReply, setSubmittingReply] = useState(false);
+  const [updatingTicketStatus, setUpdatingTicketStatus] = useState(false);
   const [submittingTicket, setSubmittingTicket] = useState(false);
+  const [staffList, setStaffList] = useState([]);
 
   const isStudent = currentUser?.role === "user";
   const isAdmin = currentUser?.role === "admin";
@@ -65,6 +91,11 @@ const MyProfile = ({ currentUser, onBack, onQuestionClick, onAskClick }) => {
       loadTabContent();
     }
   }, [currentUser, activeTab]);
+
+  useEffect(() => {
+    setSelectedTicketId(null);
+    setSelectedTicketData(null);
+  }, [activeTab]);
 
   const fetchUserProfile = async () => {
     try {
@@ -227,6 +258,10 @@ const MyProfile = ({ currentUser, onBack, onQuestionClick, onAskClick }) => {
         // Fetch support tickets
         const response = await api.get("/tickets");
         if (response.data.success) setTickets(response.data.data || []);
+        if (!isStudent) {
+          const staffRes = await api.get("/users/staff");
+          if (staffRes.data.success) setStaffList(staffRes.data.data || []);
+        }
       } else if (activeTab === "popular") {
         const response = await api.get("/questions?sort=mostViewed");
         if (response.data.success) setPopularQuestions(response.data.data || []);
@@ -297,6 +332,23 @@ const MyProfile = ({ currentUser, onBack, onQuestionClick, onAskClick }) => {
     }
   };
 
+  const fetchTicketDetails = async (ticketId) => {
+    try {
+      const response = await api.get(`/tickets/${ticketId}`);
+      if (response.data.success) {
+        setSelectedTicketData(response.data.data);
+      }
+    } catch (error) {
+      console.error("Error fetching ticket details:", error);
+      alert("Failed to load ticket details.");
+    }
+  };
+
+  const handleTicketClick = (ticketId) => {
+    setSelectedTicketId(ticketId);
+    fetchTicketDetails(ticketId);
+  };
+
   const handleTicketSubmit = async (e) => {
     e.preventDefault();
     if (ticketTitle.trim().length < 5 || ticketDesc.trim().length < 20) {
@@ -308,19 +360,109 @@ const MyProfile = ({ currentUser, onBack, onQuestionClick, onAskClick }) => {
     try {
       const response = await api.post("/tickets", {
         title: ticketTitle,
-        description: ticketDesc
+        description: ticketDesc,
+        category: ticketCategory
       });
       if (response.data.success) {
+        const ticket = response.data.data;
+        if (ticketAttachment) {
+          const formData = new FormData();
+          formData.append("file", ticketAttachment);
+          try {
+            await api.post(`/tickets/${ticket._id}/attachments`, formData, {
+              headers: {
+                "Content-Type": "multipart/form-data"
+              }
+            });
+          } catch (uploadError) {
+            console.error("Error uploading attachment:", uploadError);
+            alert("Ticket created, but attachment upload failed.");
+          }
+        }
         setTicketTitle("");
         setTicketDesc("");
+        setTicketCategory("other");
+        setTicketAttachment(null);
+        
+        // Reset file input
+        const fileInput = document.getElementById("ticket-file-input");
+        if (fileInput) fileInput.value = "";
+
         setActionMessage("Support ticket opened successfully!");
-        loadTabContent(); // reload list
+        
+        // Refresh ticket list
+        const ticketsResponse = await api.get("/tickets");
+        if (ticketsResponse.data.success) {
+          setTickets(ticketsResponse.data.data || []);
+        }
       }
     } catch (error) {
       console.error(error);
       alert("Failed to submit support ticket.");
     } finally {
       setSubmittingTicket(false);
+    }
+  };
+
+  const handleReplySubmit = async (e) => {
+    e.preventDefault();
+    if (!newReplyText.trim()) return;
+
+    setSubmittingReply(true);
+    try {
+      const response = await api.post(`/tickets/${selectedTicketId}/messages`, {
+        body: newReplyText
+      });
+      if (response.data.success) {
+        setNewReplyText("");
+        await fetchTicketDetails(selectedTicketId);
+      }
+    } catch (error) {
+      console.error("Error submitting reply:", error);
+      alert("Failed to send reply.");
+    } finally {
+      setSubmittingReply(false);
+    }
+  };
+
+  const handleUpdateStatus = async (status) => {
+    setUpdatingTicketStatus(true);
+    try {
+      const response = await api.patch(`/tickets/${selectedTicketId}/status`, { status });
+      if (response.data.success) {
+        setActionMessage(`Ticket status updated to ${status}`);
+        await fetchTicketDetails(selectedTicketId);
+        // Refresh list
+        const ticketsResponse = await api.get("/tickets");
+        if (ticketsResponse.data.success) {
+          setTickets(ticketsResponse.data.data || []);
+        }
+      }
+    } catch (error) {
+      console.error("Error updating status:", error);
+      alert("Failed to update status.");
+    } finally {
+      setUpdatingTicketStatus(false);
+    }
+  };
+
+  const handleAssignTicket = async (staffId) => {
+    try {
+      const response = await api.patch(`/tickets/${selectedTicketId}/assign`, {
+        assignedTo: staffId
+      });
+      if (response.data.success) {
+        setActionMessage("Ticket assigned successfully");
+        await fetchTicketDetails(selectedTicketId);
+        // Refresh list
+        const ticketsResponse = await api.get("/tickets");
+        if (ticketsResponse.data.success) {
+          setTickets(ticketsResponse.data.data || []);
+        }
+      }
+    } catch (error) {
+      console.error("Error assigning ticket:", error);
+      alert("Failed to assign ticket.");
     }
   };
 
@@ -636,8 +778,8 @@ const MyProfile = ({ currentUser, onBack, onQuestionClick, onAskClick }) => {
                       : "text-gray-300 hover:text-white hover:bg-white/5"
                   }`}
                 >
-                  <Headphones size={16} className={activeTab === "support" ? "text-blue-400" : "text-gray-400"} />
-                  Help & Support
+                  <Wrench size={16} className={activeTab === "support" ? "text-blue-400" : "text-gray-400"} />
+                  Troubleshooting
                 </button>
               </div>
             </div>
@@ -669,8 +811,8 @@ const MyProfile = ({ currentUser, onBack, onQuestionClick, onAskClick }) => {
                     : "text-gray-300 hover:text-white hover:bg-white/5"
                 }`}
               >
-                <Headphones size={18} className={activeTab === "support" ? "text-blue-400" : "text-gray-400"} />
-                Help & Support
+                <Wrench size={18} className={activeTab === "support" ? "text-blue-400" : "text-gray-400"} />
+                Troubleshooting
               </button>
             </nav>
           )}
@@ -1692,86 +1834,364 @@ const MyProfile = ({ currentUser, onBack, onQuestionClick, onAskClick }) => {
               </div>
             )}
 
-            {/* SUB-VIEW: HELP & SUPPORT */}
+            {/* SUB-VIEW: TROUBLESHOOTING SYSTEM */}
             {activeTab === "support" && (
               <div className="space-y-6">
-                <div>
-                  <h2 className="text-xl font-bold text-white mb-2">Help & support</h2>
-                  <p className="text-xs text-gray-500">Create ticket queries for administrative support or review past logs.</p>
-                </div>
-
-                <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-                  
-                  {/* Ticket Form */}
-                  <form onSubmit={handleTicketSubmit} className="lg:col-span-1 rounded-2xl border border-white/10 bg-surface-light p-6 shadow-xl space-y-4 h-fit">
-                    <h3 className="text-sm font-bold uppercase tracking-wider text-gray-400 mb-2">Submit Support Ticket</h3>
-                    
-                    <div>
-                      <label className="block text-xs font-semibold text-gray-400 uppercase mb-1.5">Title</label>
-                      <input
-                        type="text"
-                        value={ticketTitle}
-                        onChange={(e) => setTicketTitle(e.target.value)}
-                        required
-                        placeholder="e.g. Server Latency Issue"
-                        className="w-full rounded-lg border border-white/10 bg-surface py-2.5 px-4 text-sm text-white placeholder-gray-600 focus:border-primary-500 focus:outline-none"
-                      />
-                    </div>
-
-                    <div>
-                      <label className="block text-xs font-semibold text-gray-400 uppercase mb-1.5">Description (Min 20 chars)</label>
-                      <textarea
-                        value={ticketDesc}
-                        onChange={(e) => setTicketDesc(e.target.value)}
-                        required
-                        rows={4}
-                        placeholder="Detail the issue with environment parameters..."
-                        className="w-full rounded-lg border border-white/10 bg-surface py-2.5 px-4 text-sm text-white placeholder-gray-600 focus:border-primary-500 focus:outline-none resize-none"
-                      />
-                    </div>
-
-                    <button
-                      type="submit"
-                      disabled={submittingTicket}
-                      className="w-full rounded-lg bg-primary-500 hover:bg-primary-600 disabled:opacity-50 py-2.5 text-xs font-semibold text-white flex items-center justify-center gap-1.5 transition-colors pt-2"
-                    >
-                      {submittingTicket ? <Loader2 size={12} className="animate-spin" /> : <Send size={12} />}
-                      Submit Ticket
-                    </button>
-                  </form>
-
-                  {/* Tickets List */}
-                  <div className="lg:col-span-2 rounded-2xl border border-white/10 bg-surface-light p-6 shadow-xl">
-                    <h3 className="text-sm font-bold uppercase tracking-wider text-gray-400 mb-4">My Support Tickets</h3>
-
-                    {tickets.length === 0 ? (
-                      <div className="rounded-xl border border-dashed border-white/10 bg-surface/30 p-12 text-center text-gray-500">
-                        No support tickets opened.
-                      </div>
-                    ) : (
-                      <div className="space-y-3">
-                        {tickets.map((t) => (
-                          <div key={t._id} className="rounded-xl border border-white/5 bg-surface p-4 flex items-center justify-between gap-4">
-                            <div className="min-w-0 flex-1">
-                              <h4 className="text-sm font-bold text-white truncate mb-1">{t.title}</h4>
-                              <p className="text-[10px] text-gray-500">Status: <strong className="text-gray-400 uppercase">{t.status}</strong> • Opened {new Date(t.createdAt).toLocaleDateString()}</p>
-                            </div>
-                            <span className={`inline-flex rounded-full px-2 py-0.5 text-[9px] font-bold uppercase ${
-                              t.status === 'resolved' 
+                {selectedTicketId && selectedTicketData ? (
+                  <div className="space-y-6">
+                    {/* Header with back button */}
+                    <div className="flex flex-wrap items-center justify-between gap-4 border-b border-white/10 pb-4">
+                      <div className="flex items-center gap-3">
+                        <button
+                          onClick={() => { setSelectedTicketId(null); setSelectedTicketData(null); }}
+                          className="flex items-center justify-center h-8 w-8 rounded-lg border border-white/10 bg-surface hover:bg-surface-light text-gray-400 hover:text-white transition-colors"
+                        >
+                          <ArrowLeft size={16} />
+                        </button>
+                        <div>
+                          <div className="flex flex-wrap items-center gap-2 mb-1">
+                            <span className="inline-flex rounded-full bg-blue-500/10 text-blue-400 border border-blue-500/20 px-2.5 py-0.5 text-[10px] font-semibold uppercase tracking-wider">
+                              {categoryMap[selectedTicketData.ticket.category] || "Other"}
+                            </span>
+                            <span className={`inline-flex rounded-full px-2 py-0.5 text-[10px] font-bold uppercase tracking-wider ${
+                              selectedTicketData.ticket.status === 'resolved' 
                                 ? 'bg-emerald-500/10 text-emerald-400 border border-emerald-500/20' 
-                                : t.status === 'in_progress'
+                                : selectedTicketData.ticket.status === 'in_progress'
                                 ? 'bg-indigo-500/10 text-indigo-400 border border-indigo-500/20'
                                 : 'bg-amber-500/10 text-amber-400 border border-amber-500/20'
                             }`}>
-                              {t.status}
+                              {statusMap[selectedTicketData.ticket.status] || selectedTicketData.ticket.status}
                             </span>
                           </div>
-                        ))}
+                          <h2 className="text-xl font-bold text-white">{selectedTicketData.ticket.title}</h2>
+                          <p className="text-xs text-gray-500">
+                            Opened by <strong className="text-gray-400">{selectedTicketData.ticket.createdBy?.name || selectedTicketData.ticket.createdBy?.username || "Unknown"}</strong> on {new Date(selectedTicketData.ticket.createdAt).toLocaleString()}
+                          </p>
+                        </div>
+                      </div>
+                    </div>
+
+                    {/* Admin actions block */}
+                    {!isStudent && (
+                      <div className="rounded-xl border border-blue-500/10 bg-blue-950/20 p-4 flex flex-wrap items-center justify-between gap-4">
+                        <div className="text-xs">
+                          <p className="text-gray-400">
+                            Current Assignee: <strong className="text-white">{selectedTicketData.ticket.assignedTo?.name || selectedTicketData.ticket.assignedTo?.username || "Unassigned"}</strong>
+                          </p>
+                        </div>
+                        <div className="flex items-center gap-3">
+                          <div className="flex items-center gap-2">
+                            <span className="text-xs text-gray-400 font-semibold uppercase">Assign to:</span>
+                            <select
+                              value={selectedTicketData.ticket.assignedTo?._id || ""}
+                              onChange={(e) => {
+                                if (e.target.value) {
+                                  handleAssignTicket(e.target.value);
+                                }
+                              }}
+                              className="rounded-lg border border-white/10 bg-surface py-1.5 px-3 text-xs text-white focus:outline-none focus:border-primary-500"
+                            >
+                              <option value="" disabled>Select Staff...</option>
+                              {staffList.map((staff) => (
+                                <option key={staff._id} value={staff._id}>
+                                  {staff.name || staff.username} ({staff.role === 'admin' ? 'Admin' : 'Moderator'})
+                                </option>
+                              ))}
+                            </select>
+                          </div>
+                          
+                          <div className="flex items-center gap-2">
+                            <span className="text-xs text-gray-400 font-semibold uppercase">Status:</span>
+                            <select
+                              value={selectedTicketData.ticket.status}
+                              onChange={(e) => handleUpdateStatus(e.target.value)}
+                              disabled={updatingTicketStatus}
+                              className="rounded-lg border border-white/10 bg-surface py-1.5 px-3 text-xs text-white focus:outline-none focus:border-primary-500"
+                            >
+                              <option value="open">Open</option>
+                              <option value="in_progress">In Progress</option>
+                              <option value="resolved">Resolved</option>
+                            </select>
+                          </div>
+                        </div>
                       </div>
                     )}
-                  </div>
 
-                </div>
+                    <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+                      {/* Thread Messages */}
+                      <div className="lg:col-span-2 space-y-4">
+                        {/* Ticket original description (acts as first message) */}
+                        <div className="rounded-xl border border-white/10 bg-surface-light p-5 space-y-3">
+                          <div className="flex items-center justify-between">
+                            <div className="flex items-center gap-2">
+                              <div className="h-7 w-7 rounded-full bg-primary-500/15 text-primary-400 border border-primary-500/20 flex items-center justify-center text-xs font-bold uppercase">
+                                {selectedTicketData.ticket.createdBy?.name?.substring(0, 2) || selectedTicketData.ticket.createdBy?.username?.substring(0, 2) || "U"}
+                              </div>
+                              <div>
+                                <strong className="text-xs text-white block">{selectedTicketData.ticket.createdBy?.name || selectedTicketData.ticket.createdBy?.username}</strong>
+                                <span className="text-[10px] text-gray-500 uppercase tracking-wide">{selectedTicketData.ticket.createdBy?.role}</span>
+                              </div>
+                            </div>
+                            <span className="text-[10px] text-gray-500">{new Date(selectedTicketData.ticket.createdAt).toLocaleTimeString()}</span>
+                          </div>
+                          <p className="text-sm text-gray-300 whitespace-pre-wrap leading-relaxed">
+                            {selectedTicketData.ticket.description}
+                          </p>
+
+                          {/* Attachments inside original post if any */}
+                          {selectedTicketData.ticket.attachments && selectedTicketData.ticket.attachments.length > 0 && (
+                            <div className="border-t border-white/5 pt-3 mt-3">
+                              <span className="block text-[10px] font-bold text-gray-500 uppercase mb-2">Attachments</span>
+                              <div className="flex flex-wrap gap-2">
+                                {selectedTicketData.ticket.attachments.map((att) => (
+                                  <a
+                                    key={att._id}
+                                    href={att.url}
+                                    target="_blank"
+                                    rel="noopener noreferrer"
+                                    className="group relative block rounded-lg border border-white/10 bg-surface/50 overflow-hidden hover:border-blue-500/30 transition-colors w-24 h-24"
+                                  >
+                                    <img
+                                      src={att.url}
+                                      alt="attachment"
+                                      className="w-full h-full object-cover group-hover:scale-105 transition-transform"
+                                    />
+                                  </a>
+                                ))}
+                              </div>
+                            </div>
+                          )}
+                        </div>
+
+                        {/* Message replies */}
+                        <div className="space-y-3">
+                          {selectedTicketData.messages && selectedTicketData.messages.map((msg) => {
+                            const isMsgStaff = ['moderator', 'admin'].includes(msg.author?.role);
+                            return (
+                              <div
+                                key={msg._id}
+                                className={`rounded-xl border p-4 space-y-2 ${
+                                  isMsgStaff
+                                    ? "border-blue-500/10 bg-blue-950/10"
+                                    : "border-white/5 bg-surface"
+                                }`}
+                              >
+                                <div className="flex items-center justify-between">
+                                  <div className="flex items-center gap-2">
+                                    <div className={`h-6 w-6 rounded-full flex items-center justify-center text-[10px] font-bold uppercase ${
+                                      isMsgStaff 
+                                        ? 'bg-blue-500/15 text-blue-400 border border-blue-500/20' 
+                                        : 'bg-primary-500/15 text-primary-400 border border-primary-500/20'
+                                    }`}>
+                                      {msg.author?.name?.substring(0, 2) || msg.author?.username?.substring(0, 2) || "U"}
+                                    </div>
+                                    <div>
+                                      <div className="flex items-center gap-1.5">
+                                        <strong className="text-xs text-white">{msg.author?.name || msg.author?.username}</strong>
+                                        {isMsgStaff && (
+                                          <span className="rounded bg-blue-500/10 text-blue-400 border border-blue-500/20 px-1 py-0.5 text-[8px] font-bold uppercase tracking-wider">
+                                            Staff
+                                          </span>
+                                        )}
+                                      </div>
+                                    </div>
+                                  </div>
+                                  <span className="text-[10px] text-gray-500">{new Date(msg.createdAt).toLocaleString()}</span>
+                                </div>
+                                <p className="text-sm text-gray-300 whitespace-pre-wrap leading-relaxed pl-8">
+                                  {msg.body}
+                                </p>
+                              </div>
+                            );
+                          })}
+                        </div>
+
+                        {/* Reply form */}
+                        <form onSubmit={handleReplySubmit} className="rounded-xl border border-white/10 bg-surface p-4 space-y-3">
+                          <textarea
+                            value={newReplyText}
+                            onChange={(e) => setNewReplyText(e.target.value)}
+                            required
+                            rows={3}
+                            placeholder="Type a message to reply..."
+                            className="w-full rounded-lg border border-white/10 bg-surface-light py-2 px-3 text-sm text-white placeholder-gray-600 focus:border-primary-500 focus:outline-none resize-none"
+                          />
+                          <div className="flex justify-end">
+                            <button
+                              type="submit"
+                              disabled={submittingReply}
+                              className="rounded-lg bg-primary-500 hover:bg-primary-600 disabled:opacity-50 px-4 py-2 text-xs font-semibold text-white flex items-center gap-1.5 transition-colors"
+                            >
+                              {submittingReply ? <Loader2 size={12} className="animate-spin" /> : <Send size={12} />}
+                              Send Reply
+                            </button>
+                          </div>
+                        </form>
+                      </div>
+
+                      {/* Ticket Details Info Sidebar */}
+                      <div className="lg:col-span-1 space-y-6">
+                        <div className="rounded-xl border border-white/10 bg-surface-light p-5 space-y-4">
+                          <h3 className="text-xs font-bold text-gray-400 uppercase tracking-wider">Ticket Info</h3>
+                          
+                          <div className="space-y-3 text-xs border-t border-white/5 pt-3">
+                            <div>
+                              <span className="text-gray-500 block">Category</span>
+                              <strong className="text-white text-sm font-medium">{categoryMap[selectedTicketData.ticket.category] || "Other"}</strong>
+                            </div>
+                            <div>
+                              <span className="text-gray-500 block">Status</span>
+                              <strong className="text-white text-sm font-medium uppercase">{selectedTicketData.ticket.status}</strong>
+                            </div>
+                            <div>
+                              <span className="text-gray-500 block">Opened On</span>
+                              <strong className="text-white text-sm font-medium">{new Date(selectedTicketData.ticket.createdAt).toLocaleString()}</strong>
+                            </div>
+                            {selectedTicketData.ticket.assignedTo ? (
+                              <div>
+                                <span className="text-gray-500 block">Assigned Staff</span>
+                                <strong className="text-white text-sm font-medium">{selectedTicketData.ticket.assignedTo.name || selectedTicketData.ticket.assignedTo.username}</strong>
+                              </div>
+                            ) : (
+                              <div>
+                                <span className="text-gray-500 block">Assigned Staff</span>
+                                <strong className="text-gray-400 text-sm font-medium">Unassigned</strong>
+                              </div>
+                            )}
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                ) : (
+                  <div className="space-y-6">
+                    <div>
+                      <h2 className="text-xl font-bold text-white mb-2">Troubleshooting</h2>
+                      <p className="text-xs text-gray-500">
+                        {isStudent 
+                          ? "Submit login, technical, or other sensitive private tickets here. Support discussions are strictly confidential."
+                          : "Manage private user tickets, assign moderators, and reply to technical or login issues."}
+                      </p>
+                    </div>
+
+                    <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+                      
+                      {/* Ticket Form */}
+                      {isStudent && (
+                        <form onSubmit={handleTicketSubmit} className="lg:col-span-1 rounded-2xl border border-white/10 bg-surface-light p-6 shadow-xl space-y-4 h-fit">
+                          <h3 className="text-sm font-bold uppercase tracking-wider text-gray-400 mb-2">Submit Support Ticket</h3>
+                          
+                          <div>
+                            <label className="block text-xs font-semibold text-gray-400 uppercase mb-1.5">Category</label>
+                            <select
+                              value={ticketCategory}
+                              onChange={(e) => setTicketCategory(e.target.value)}
+                              className="w-full rounded-lg border border-white/10 bg-surface py-2.5 px-4 text-sm text-white focus:border-primary-500 focus:outline-none"
+                            >
+                              <option value="technical">Technical Issue</option>
+                              <option value="login">Login Issue</option>
+                              <option value="other">Other</option>
+                            </select>
+                          </div>
+
+                          <div>
+                            <label className="block text-xs font-semibold text-gray-400 uppercase mb-1.5">Title</label>
+                            <input
+                              type="text"
+                              value={ticketTitle}
+                              onChange={(e) => setTicketTitle(e.target.value)}
+                              required
+                              placeholder="e.g. Can't access my dashboard"
+                              className="w-full rounded-lg border border-white/10 bg-surface py-2.5 px-4 text-sm text-white placeholder-gray-600 focus:border-primary-500 focus:outline-none"
+                            />
+                          </div>
+
+                          <div>
+                            <label className="block text-xs font-semibold text-gray-400 uppercase mb-1.5">Description (Min 20 chars)</label>
+                            <textarea
+                              value={ticketDesc}
+                              onChange={(e) => setTicketDesc(e.target.value)}
+                              required
+                              rows={4}
+                              placeholder="Describe your issue in detail..."
+                              className="w-full rounded-lg border border-white/10 bg-surface py-2.5 px-4 text-sm text-white placeholder-gray-600 focus:border-primary-500 focus:outline-none resize-none"
+                            />
+                          </div>
+
+                          <div>
+                            <label className="block text-xs font-semibold text-gray-400 uppercase mb-1.5">Screenshot Attachment (Optional)</label>
+                            <input
+                              id="ticket-file-input"
+                              type="file"
+                              accept="image/*"
+                              onChange={(e) => setTicketAttachment(e.target.files[0])}
+                              className="w-full text-xs text-gray-400 file:mr-4 file:py-2 file:px-4 file:rounded-md file:border-0 file:text-xs file:font-semibold file:bg-surface file:text-gray-300 hover:file:bg-white/5 cursor-pointer file:cursor-pointer"
+                            />
+                          </div>
+
+                          <button
+                            type="submit"
+                            disabled={submittingTicket}
+                            className="w-full rounded-lg bg-primary-500 hover:bg-primary-600 disabled:opacity-50 py-2.5 text-xs font-semibold text-white flex items-center justify-center gap-1.5 transition-colors pt-2"
+                          >
+                            {submittingTicket ? <Loader2 size={12} className="animate-spin" /> : <Send size={12} />}
+                            Submit Ticket
+                          </button>
+                        </form>
+                      )}
+
+                      {/* Tickets List */}
+                      <div className={`${isStudent ? 'lg:col-span-2' : 'lg:col-span-3'} rounded-2xl border border-white/10 bg-surface-light p-6 shadow-xl`}>
+                        <h3 className="text-sm font-bold uppercase tracking-wider text-gray-400 mb-4">
+                          {isStudent ? "My Support Tickets" : "Support Tickets Queue"}
+                        </h3>
+
+                        {tickets.length === 0 ? (
+                          <div className="rounded-xl border border-dashed border-white/10 bg-surface/30 p-12 text-center text-gray-500">
+                            No support tickets found.
+                          </div>
+                        ) : (
+                          <div className="space-y-3">
+                            {tickets.map((t) => (
+                              <div
+                                key={t._id}
+                                onClick={() => handleTicketClick(t._id)}
+                                className="rounded-xl border border-white/5 bg-surface p-4 flex items-center justify-between gap-4 hover:border-white/10 hover:bg-surface-light transition-all duration-200 cursor-pointer"
+                              >
+                                <div className="min-w-0 flex-1">
+                                  <div className="flex items-center gap-2 mb-1">
+                                    <span className="inline-flex rounded-full bg-blue-500/10 text-blue-400 border border-blue-500/20 px-2 py-0.5 text-[9px] font-semibold uppercase tracking-wider">
+                                      {categoryMap[t.category] || "Other"}
+                                    </span>
+                                    <h4 className="text-sm font-bold text-white truncate">{t.title}</h4>
+                                  </div>
+                                  <p className="text-[10px] text-gray-500">
+                                    {!isStudent && `Opened by: ${t.createdBy?.name || t.createdBy?.username || "Unknown"} • `}
+                                    Opened: {new Date(t.createdAt).toLocaleDateString()}
+                                    {t.assignedTo && ` • Assigned to: ${t.assignedTo.name || t.assignedTo.username}`}
+                                  </p>
+                                </div>
+                                <div className="flex items-center gap-3">
+                                  <span className={`inline-flex rounded-full px-2 py-0.5 text-[9px] font-bold uppercase ${
+                                    t.status === 'resolved' 
+                                      ? 'bg-emerald-500/10 text-emerald-400 border border-emerald-500/20' 
+                                      : t.status === 'in_progress'
+                                      ? 'bg-indigo-500/10 text-indigo-400 border border-indigo-500/20'
+                                      : 'bg-amber-500/10 text-amber-400 border border-amber-500/20'
+                                  }`}>
+                                    {statusMap[t.status] || t.status}
+                                  </span>
+                                  <ChevronRight size={14} className="text-gray-600" />
+                                </div>
+                              </div>
+                            ))}
+                          </div>
+                        )}
+                      </div>
+
+                    </div>
+                  </div>
+                )}
               </div>
             )}
           </>
