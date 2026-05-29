@@ -2,7 +2,7 @@ import { useState, useEffect } from "react";
 import { X, HelpCircle, FileText, Tag, ChevronRight } from "lucide-react";
 import api from "../api/axios";
 
-const QuestionModal = ({ isOpen, onClose, categories = [], onQuestionCreated, draft, currentUser }) => {
+const QuestionModal = ({ isOpen, onClose, categories = [], onQuestionCreated, draft, currentUser, onQuestionClick }) => {
   const [formData, setFormData] = useState({
     title: "",
     body: "",
@@ -11,6 +11,7 @@ const QuestionModal = ({ isOpen, onClose, categories = [], onQuestionCreated, dr
   });
   const [error, setError] = useState(null);
   const [loading, setLoading] = useState(false);
+  const [similarQuestions, setSimilarQuestions] = useState([]);
 
   useEffect(() => {
     if (isOpen) {
@@ -30,8 +31,32 @@ const QuestionModal = ({ isOpen, onClose, categories = [], onQuestionCreated, dr
         });
       }
       setError(null);
+      setSimilarQuestions([]);
     }
   }, [isOpen, draft]);
+
+  useEffect(() => {
+    const checkSimilarity = async () => {
+      if (formData.title.trim().length < 5) {
+        setSimilarQuestions([]);
+        return;
+      }
+      try {
+        const response = await api.get(`/questions/similar?title=${encodeURIComponent(formData.title)}`);
+        if (response.data.success) {
+          setSimilarQuestions(response.data.data || []);
+        }
+      } catch (err) {
+        console.error("Error checking question similarity:", err);
+      }
+    };
+
+    const delayDebounce = setTimeout(() => {
+      checkSimilarity();
+    }, 500);
+
+    return () => clearTimeout(delayDebounce);
+  }, [formData.title]);
 
   if (!isOpen) return null;
 
@@ -227,6 +252,28 @@ const QuestionModal = ({ isOpen, onClose, categories = [], onQuestionCreated, dr
             <p className="mt-1 text-[10px] text-gray-500 text-right">
               {formData.title.length}/150 characters (min 10)
             </p>
+            {similarQuestions.length > 0 && (
+              <div className="mt-3 rounded-lg bg-indigo-500/10 border border-indigo-500/25 p-3 text-xs select-none">
+                <p className="font-semibold text-indigo-300 mb-1.5 flex items-center gap-1.5">
+                  <HelpCircle size={14} className="text-indigo-400" />
+                  Is your question already answered? Check these:
+                </p>
+                <div className="space-y-1.5 max-h-32 overflow-y-auto pr-1">
+                  {similarQuestions.map((q) => (
+                    <div 
+                      key={q._id}
+                      onClick={() => {
+                        if (onQuestionClick) onQuestionClick(q);
+                      }}
+                      className="hover:text-primary-300 hover:underline cursor-pointer font-medium text-gray-300 truncate text-[11px] block"
+                      title={q.title}
+                    >
+                      • "{q.title}"
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
           </div>
 
           <div>

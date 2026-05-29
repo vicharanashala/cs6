@@ -1,47 +1,58 @@
 import Question from '../models/Question.js';
-import Fuse from 'fuse.js';
+import Answer from '../models/Answer.js';
 
 export const unifiedSearch = async (req, res, next) => {
   try {
-    const { q = '', type = 'all', category, tag, limit = 10 } = req.query;
+    const { q = '', type = 'all', category, limit = 10 } = req.query;
 
     const queryLimit = parseInt(limit, 10) || 10;
 
     // Build base filter
     const filter = { status: { $ne: 'deleted' } };
     if (category) filter.category = category;
-    if (tag) filter.tags = tag;
 
     let results = [];
 
     if (q.trim()) {
-      // 1. Keyword search via MongoDB Text Index
-      const textQuery = { ...filter, $text: { $search: q } };
-      const textResults = await Question.find(textQuery)
+      const regex = new RegExp(q.trim(), 'i');
+
+      // 1. Direct search on question titles and bodies
+      const matchedQuestions = await Question.find({
+        ...filter,
+        $or: [
+          { title: regex },
+          { body: regex }
+        ]
+      })
+      .populate('author', 'username name avatar')
+      .populate('category', 'name')
+      .lean();
+
+      // 2. Search answer bodies and find their parent questions
+      const matchedAnswers = await Answer.find({
+        body: regex,
+        status: 'visible'
+      })
+      .select('questionId')
+      .lean();
+
+      const questionIdsFromAnswers = matchedAnswers.map(ans => ans.questionId.toString());
+
+      let questionsFromAnswers = [];
+      if (questionIdsFromAnswers.length > 0) {
+        questionsFromAnswers = await Question.find({
+          ...filter,
+          _id: { $in: questionIdsFromAnswers }
+        })
         .populate('author', 'username name avatar')
         .populate('category', 'name')
         .lean();
+      }
 
-      // 2. Fuzzy search via Fuse.js
-      const allQuestions = await Question.find(filter)
-        .populate('author', 'username name avatar')
-        .populate('category', 'name')
-        .lean();
-
-      const fuse = new Fuse(allQuestions, {
-        keys: [
-          { name: 'title', weight: 0.7 },
-          { name: 'body', weight: 0.3 }
-        ],
-        threshold: 0.5
-      });
-
-      const fuzzyResults = fuse.search(q).map(r => r.item);
-
-      // 3. Merge and Rank (keep text index hits first, then append distinct fuzzy hits)
+      // 3. Merge results uniquely
       const mergedMap = new Map();
-      textResults.forEach(item => mergedMap.set(item._id.toString(), item));
-      fuzzyResults.forEach(item => {
+      matchedQuestions.forEach(item => mergedMap.set(item._id.toString(), item));
+      questionsFromAnswers.forEach(item => {
         const idStr = item._id.toString();
         if (!mergedMap.has(idStr)) {
           mergedMap.set(idStr, item);

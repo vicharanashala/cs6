@@ -89,6 +89,11 @@ function App() {
               setViewState("category");
             }}
             onAskClick={handleAskQuestionClick}
+            onQuestionSelect={(q) => {
+              setSelectedQuestion(q);
+              setBackView("home");
+              setViewState("question");
+            }}
           />
         )}
 
@@ -145,6 +150,13 @@ function App() {
         categories={categories}
         draft={activeDraft}
         currentUser={currentUser}
+        onQuestionClick={(q) => {
+          setIsQuestionOpen(false);
+          setActiveDraft(null);
+          setSelectedQuestion(q);
+          setBackView("home");
+          setViewState("question");
+        }}
         onQuestionCreated={(newQ) => {
           // Re-fetch categories to update counts on home
           fetchCategories();

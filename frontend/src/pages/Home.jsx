@@ -1,9 +1,10 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { 
   UserPlus, DollarSign, BookOpen, Home as HomeIcon, Briefcase, 
   FileText, Building, Award, Cpu, Heart, 
-  Library, Compass, Globe, ArrowRight, Search, Zap, ShieldCheck, HelpCircle 
+  Library, Compass, Globe, ArrowRight, Search, Zap, ShieldCheck, HelpCircle, Eye 
 } from "lucide-react";
+import api from "../api/axios";
 
 // Static mapping for category icons and calibrated WCAG AA contrast colors
 const getCategoryMeta = (index) => {
@@ -25,14 +26,38 @@ const getCategoryMeta = (index) => {
   return meta[index % meta.length];
 };
 
-const Home = ({ categories = [], onCategorySelect, onAskClick }) => {
+const Home = ({ categories = [], onCategorySelect, onAskClick, onQuestionSelect }) => {
   const [searchQuery, setSearchQuery] = useState("");
+  const [searchResults, setSearchResults] = useState({ faqs: [], questions: [] });
+  const [isSearching, setIsSearching] = useState(false);
 
-  // Instant card filter based on keywords entered in hero search input
-  const filteredCategories = categories.filter(cat => 
-    cat.name.toLowerCase().includes(searchQuery.toLowerCase()) || 
-    cat.description.toLowerCase().includes(searchQuery.toLowerCase())
-  );
+  useEffect(() => {
+    const performSearch = async () => {
+      if (!searchQuery.trim()) {
+        setSearchResults({ faqs: [], questions: [] });
+        return;
+      }
+      setIsSearching(true);
+      try {
+        const response = await api.get(`/search?q=${encodeURIComponent(searchQuery)}`);
+        if (response.data.success) {
+          setSearchResults(response.data.data || { faqs: [], questions: [] });
+        }
+      } catch (error) {
+        console.error("Search error:", error);
+      } finally {
+        setIsSearching(false);
+      }
+    };
+
+    const delayDebounce = setTimeout(() => {
+      performSearch();
+    }, 400);
+
+    return () => clearTimeout(delayDebounce);
+  }, [searchQuery]);
+
+  const filteredCategories = categories;
 
   return (
     <div className="mx-auto max-w-6xl px-6 py-16">
@@ -86,26 +111,123 @@ const Home = ({ categories = [], onCategorySelect, onAskClick }) => {
         </div>
       </section>
 
-      {/* ─── Category Grid ────────────────────────────────────────── */}
-      <section className="mb-12">
-        <div className="flex justify-between items-center mb-6">
-          <h3 className="text-sm font-bold tracking-wider text-gray-400 uppercase">
-            Browse Category Portals ({filteredCategories.length})
-          </h3>
-        </div>
-
-        {filteredCategories.length === 0 ? (
-          <div className="rounded-xl border border-white/5 bg-surface-light p-12 text-center">
-            <p className="text-gray-400 font-medium">No categories matched your search criteria</p>
-            <p className="text-gray-600 text-xs mt-1">Try searching for other keywords or ask a new question instead.</p>
-            <button
-              onClick={onAskClick}
-              className="mt-6 inline-flex items-center gap-1.5 rounded-lg bg-primary-500 py-2 px-4 text-xs font-semibold text-white hover:bg-primary-600 transition-colors"
-            >
-              Submit Question
-            </button>
+      {/* ─── Search Results or Category Grid ────────────────────────────────────────── */}
+      {searchQuery.trim() ? (
+        <section className="mb-12 space-y-8 font-sans">
+          <div className="flex justify-between items-center border-b border-white/5 pb-4">
+            <h3 className="text-sm font-bold tracking-wider text-gray-400 uppercase">
+              Search Results
+            </h3>
           </div>
-        ) : (
+
+          {isSearching ? (
+            <div className="flex flex-col items-center py-16">
+              <div className="h-8 w-8 animate-spin rounded-full border-2 border-primary-500 border-t-transparent" />
+              <p className="mt-4 text-xs text-gray-500">Searching FAQ and question text index...</p>
+            </div>
+          ) : searchResults.faqs.length === 0 && searchResults.questions.length === 0 ? (
+            <div className="rounded-xl border border-white/5 bg-surface-light p-12 text-center">
+              <p className="text-gray-400 font-medium">No results found for "{searchQuery}"</p>
+              <p className="text-gray-600 text-xs mt-1">Check spelling or create a new question instead.</p>
+              <button
+                onClick={onAskClick}
+                className="mt-6 inline-flex items-center gap-1.5 rounded-lg bg-primary-500 py-2 px-4 text-xs font-semibold text-white hover:bg-primary-600 transition-colors"
+              >
+                Submit Question
+              </button>
+            </div>
+          ) : (
+            <div className="space-y-8">
+              
+              {/* Verified FAQs Priority list */}
+              {searchResults.faqs.length > 0 && (
+                <div className="space-y-3">
+                  <h4 className="text-xs font-bold uppercase tracking-wider text-indigo-400 flex items-center gap-1.5">
+                    Verified FAQs
+                  </h4>
+                  <div className="grid gap-4 grid-cols-1">
+                    {searchResults.faqs.map((faq) => (
+                      <div 
+                        key={faq._id}
+                        onClick={() => onQuestionSelect(faq)}
+                        className="group relative flex flex-col sm:flex-row justify-between items-start sm:items-center rounded-2xl border border-indigo-500/10 bg-indigo-950/10 p-5 shadow-sm cursor-pointer hover:border-indigo-500/20 hover:bg-indigo-950/20 transition-all duration-300 gap-4"
+                      >
+                        <div className="min-w-0 flex-1">
+                          <span className="inline-flex rounded-full bg-indigo-500/10 text-indigo-300 border border-indigo-500/20 px-2 py-0.5 text-[9px] font-bold uppercase tracking-wider mb-2">
+                            Verified FAQ
+                          </span>
+                          <h4 className="text-base font-bold text-white group-hover:text-primary-300 truncate mb-1">
+                            {faq.title}
+                          </h4>
+                          <p className="text-[10px] text-gray-500">
+                            Category: {faq.category?.name} • Promoted on {new Date(faq.updatedAt).toLocaleDateString()}
+                          </p>
+                        </div>
+                        <div className="flex items-center gap-4 shrink-0 text-xs text-gray-500">
+                          <span className="flex items-center gap-1">
+                            <Eye size={12} />
+                            {faq.views}
+                          </span>
+                          <ArrowRight size={14} className="text-indigo-400 transition-transform group-hover:translate-x-0.5" />
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              {/* Discussions & Unanswered Questions */}
+              {searchResults.questions.length > 0 && (
+                <div className="space-y-3">
+                  <h4 className="text-xs font-bold uppercase tracking-wider text-gray-400">
+                    Community Questions
+                  </h4>
+                  <div className="grid gap-4 grid-cols-1">
+                    {searchResults.questions.map((q) => (
+                      <div 
+                        key={q._id}
+                        onClick={() => onQuestionSelect(q)}
+                        className="group relative flex flex-col sm:flex-row justify-between items-start sm:items-center rounded-2xl border border-white/5 bg-surface-light p-5 shadow-sm cursor-pointer hover:border-white/10 hover:bg-surface-lighter transition-all duration-300 gap-4"
+                      >
+                        <div className="min-w-0 flex-1">
+                          <span className={`inline-flex rounded-full px-2 py-0.5 text-[9px] font-bold uppercase tracking-wider mb-2 ${
+                            q.status === 'resolved' 
+                              ? 'bg-emerald-500/10 text-emerald-400 border border-emerald-500/20'
+                              : 'bg-amber-500/10 text-amber-400 border border-amber-500/20'
+                          }`}>
+                            {q.status}
+                          </span>
+                          <h4 className="text-base font-bold text-white group-hover:text-primary-300 truncate mb-1">
+                            {q.title}
+                          </h4>
+                          <p className="text-[10px] text-gray-500">
+                            Category: {q.category?.name} • Asked by {q.author?.name || q.author?.username} on {new Date(q.createdAt).toLocaleDateString()}
+                          </p>
+                        </div>
+                        <div className="flex items-center gap-4 shrink-0 text-xs text-gray-500">
+                          <span className="flex items-center gap-1">
+                            <Eye size={12} />
+                            {q.views}
+                          </span>
+                          <ArrowRight size={14} className="text-gray-400 transition-transform group-hover:translate-x-0.5" />
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+
+            </div>
+          )}
+        </section>
+      ) : (
+        <section className="mb-12">
+          <div className="flex justify-between items-center mb-6">
+            <h3 className="text-sm font-bold tracking-wider text-gray-400 uppercase">
+              Browse Category Portals ({filteredCategories.length})
+            </h3>
+          </div>
+
           <div className="grid gap-6 grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-5">
             {filteredCategories.map((cat, index) => {
               const { icon: Icon, colorClass } = getCategoryMeta(index);
@@ -117,29 +239,24 @@ const Home = ({ categories = [], onCategorySelect, onAskClick }) => {
                   onClick={() => onCategorySelect(cat)}
                   className="group relative flex flex-col justify-between rounded-2xl border border-slate-100 bg-white p-6 shadow-sm cursor-pointer transition-all duration-300 ease-in-out hover:-translate-y-1 hover:shadow-md"
                 >
-                  {/* Absolute Card Numbering */}
                   <span className="absolute top-4 right-4 text-[10px] font-black text-slate-300">
                     {formattedNumber}
                   </span>
 
                   <div>
-                    {/* Centered, softly tinted icon container */}
                     <div className={`mb-4 flex h-12 w-12 items-center justify-center rounded-xl border ${colorClass}`}>
                       <Icon size={22} strokeWidth={2} />
                     </div>
 
-                    {/* Descriptive Heading */}
                     <h4 className="text-base font-extrabold text-slate-900 leading-tight">
                       {cat.name}
                     </h4>
 
-                    {/* Description Text */}
                     <p className="mt-2 text-xs font-normal text-slate-500 leading-relaxed pr-2">
                       {cat.description}
                     </p>
                   </div>
 
-                  {/* Footer (Question Count & Circular Arrow Icon Button) */}
                   <div className="mt-6 flex items-center justify-between border-t border-slate-50 pt-4">
                     <span className="text-[10px] font-bold text-slate-400">
                       {cat.questionCount || 0} solutions
@@ -152,8 +269,8 @@ const Home = ({ categories = [], onCategorySelect, onAskClick }) => {
               );
             })}
           </div>
-        )}
-      </section>
+        </section>
+      )}
 
     </div>
   );
