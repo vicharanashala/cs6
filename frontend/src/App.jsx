@@ -81,8 +81,8 @@ function App() {
     <div className="flex-1 flex flex-col bg-surface text-gray-100 min-h-screen">
       <Navbar 
         currentUser={currentUser}
-        onLoginClick={() => setIsAuthOpen(true)}
-        onRegisterClick={() => setIsAuthOpen(true)}
+        onLoginClick={() => { setInitialTab(null); setIsAuthOpen(true); }}
+        onRegisterClick={() => { setInitialTab("register"); setIsAuthOpen(true); }}
         onAskClick={handleAskQuestionClick}
         onLogout={handleLogout}
         onProfileClick={() => { setInitialTab(null); setViewState("profile"); }}
@@ -159,6 +159,7 @@ function App() {
         isOpen={isAuthOpen}
         onClose={() => setIsAuthOpen(false)}
         onAuthSuccess={(user) => setCurrentUser(user)}
+        initialMode={initialTab === "register" ? "register" : "login"}
       />
 
       <QuestionModal 

@@ -1,9 +1,14 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { X, Lock, Mail, User as UserIcon } from "lucide-react";
 import api from "../api/axios";
 
-const AuthModal = ({ isOpen, onClose, onAuthSuccess }) => {
-  const [isLogin, setIsLogin] = useState(true);
+const AuthModal = ({ isOpen, onClose, onAuthSuccess, initialMode = "login" }) => {
+  const [isLogin, setIsLogin] = useState(initialMode === "register" ? false : true);
+
+  // Sync tab when initialMode changes (e.g. Sign Up clicked from navbar)
+  useEffect(() => {
+    setIsLogin(initialMode !== "register");
+  }, [initialMode]);
   const [formData, setFormData] = useState({
     username: "",
     name: "",
