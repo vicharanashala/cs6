@@ -37,6 +37,16 @@ function App() {
 
     // Fetch categories
     fetchCategories();
+
+    // Global session expiration handler
+    const handleAuthExpired = () => {
+      setCurrentUser(null);
+      setIsAuthOpen(true);
+    };
+    window.addEventListener("auth-expired", handleAuthExpired);
+    return () => {
+      window.removeEventListener("auth-expired", handleAuthExpired);
+    };
   }, []);
 
   const fetchCategories = async () => {

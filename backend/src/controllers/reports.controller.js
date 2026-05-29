@@ -2,6 +2,7 @@ import Report from '../models/Report.js';
 import Question from '../models/Question.js';
 import Answer from '../models/Answer.js';
 import AuditLog from '../models/AuditLog.js';
+import User from '../models/User.js';
 
 export const createReport = async (req, res, next) => {
   try {
@@ -23,6 +24,20 @@ export const createReport = async (req, res, next) => {
           message: 'Target content to report not found'
         }
       });
+    }
+
+    // Prevent reporting admin content
+    if (target.author) {
+      const authorUser = await User.findById(target.author);
+      if (authorUser && authorUser.role === 'admin') {
+        return res.status(403).json({
+          success: false,
+          error: {
+            code: 'FORBIDDEN',
+            message: 'Cannot report content created by an Administrator'
+          }
+        });
+      }
     }
 
     // AI Moderation engine logic mock:

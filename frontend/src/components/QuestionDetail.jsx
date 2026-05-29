@@ -60,7 +60,11 @@ const QuestionDetail = ({ question, onBack, currentUser, onAuthRequired }) => {
       }
     } catch (error) {
       console.error("Error reporting content:", error);
-      alert(error.response?.data?.error?.message || "Failed to submit report.");
+      if (error.response?.status === 401) {
+        alert("Your session has expired. Please log in again to report this content.");
+      } else {
+        alert(error.response?.data?.error?.message || "Failed to submit report.");
+      }
     } finally {
       setSubmittingReport(false);
     }
@@ -542,8 +546,10 @@ const QuestionDetail = ({ question, onBack, currentUser, onAuthRequired }) => {
                   </>
                 )}
 
-                {/* Report Question (Any logged in user who isn't the author) */}
-                {currentUser && currentUser._id !== currentQuestion.author?._id && (
+                {/* Report Question (Any logged in user who isn't the author and author is not admin) */}
+                {currentUser && 
+                 currentUser._id !== currentQuestion.author?._id && 
+                 currentQuestion.author?.role !== "admin" && (
                   <button
                     onClick={() => {
                       setReportTarget({ id: currentQuestion._id, type: "question" });
@@ -744,8 +750,10 @@ const QuestionDetail = ({ question, onBack, currentUser, onAuthRequired }) => {
                         </button>
                       )}
 
-                      {/* Report Answer (Any logged in user who isn't the author) */}
-                      {currentUser && currentUser._id !== ans.author?._id && (
+                      {/* Report Answer (Any logged in user who isn't the author and author is not admin) */}
+                      {currentUser && 
+                       currentUser._id !== ans.author?._id && 
+                       ans.author?.role !== "admin" && (
                         <button
                           onClick={() => {
                             setReportTarget({ id: ans._id, type: "answer" });
