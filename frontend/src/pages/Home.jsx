@@ -228,7 +228,7 @@ const Home = ({ categories = [], onCategorySelect, onAskClick, onQuestionSelect 
             </h3>
           </div>
 
-          <div className="grid gap-6 grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-5">
+          <div className="grid gap-8 grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-5" style={{ perspective: "1000px" }}>
             {filteredCategories.map((cat, index) => {
               const { icon: Icon, colorClass } = getCategoryMeta(index);
               const formattedNumber = String(index + 1).padStart(2, "0");
@@ -237,33 +237,51 @@ const Home = ({ categories = [], onCategorySelect, onAskClick, onQuestionSelect 
                 <div
                   key={cat._id}
                   onClick={() => onCategorySelect(cat)}
-                  className="group relative flex flex-col justify-between rounded-2xl border border-slate-100 bg-white p-6 shadow-sm cursor-pointer transition-all duration-300 ease-in-out hover:-translate-y-1 hover:shadow-md"
+                  className="relative rounded-xl border border-slate-100 bg-white shadow-sm cursor-pointer"
+                  style={{ height: "160px", transformStyle: "preserve-3d", transition: "transform 0.6s cubic-bezier(0.4, 0, 0.2, 1)" }}
+                  onMouseEnter={e => e.currentTarget.style.transform = "rotateY(180deg)"}
+                  onMouseLeave={e => e.currentTarget.style.transform = "rotateY(0deg)"}
                 >
-                  <span className="absolute top-4 right-4 text-[10px] font-black text-slate-300">
-                    {formattedNumber}
-                  </span>
+                  {/* ── Front Face ── */}
+                  <div
+                    className="absolute inset-0 flex flex-col justify-between p-4 backface-hidden"
+                    style={{ backfaceVisibility: "hidden", WebkitBackfaceVisibility: "hidden" }}
+                  >
+                    <span className="absolute top-3 right-3 text-[10px] font-black text-slate-300">
+                      {formattedNumber}
+                    </span>
 
-                  <div>
-                    <div className={`mb-4 flex h-12 w-12 items-center justify-center rounded-xl border ${colorClass}`}>
-                      <Icon size={22} strokeWidth={2} />
+                    <div>
+                      <div className={`mb-3 flex h-10 w-10 items-center justify-center rounded-lg border ${colorClass}`}>
+                        <Icon size={18} strokeWidth={2} />
+                      </div>
+                      <h4 className="text-sm font-extrabold text-slate-900 leading-tight">
+                        {cat.name}
+                      </h4>
                     </div>
 
-                    <h4 className="text-base font-extrabold text-slate-900 leading-tight">
-                      {cat.name}
-                    </h4>
-
-                    <p className="mt-2 text-xs font-normal text-slate-500 leading-relaxed pr-2">
-                      {cat.description}
-                    </p>
+                    <div className="flex items-center justify-between border-t border-slate-50 pt-3">
+                      <span className="text-[10px] font-bold text-slate-400">
+                        {cat.questionCount || 0} solutions
+                      </span>
+                      <div className="flex h-6 w-6 items-center justify-center rounded-full bg-slate-100 text-slate-700 shadow-sm">
+                        <ArrowRight size={12} />
+                      </div>
+                    </div>
                   </div>
 
-                  <div className="mt-6 flex items-center justify-between border-t border-slate-50 pt-4">
-                    <span className="text-[10px] font-bold text-slate-400">
-                      {cat.questionCount || 0} solutions
-                    </span>
-                    <button className="flex h-7 w-7 items-center justify-center rounded-full bg-slate-100 text-slate-700 hover:bg-primary-500 hover:text-white transition-colors duration-300 shadow-sm">
-                      <ArrowRight size={14} className="transition-transform group-hover:translate-x-0.5" />
-                    </button>
+                  {/* ── Back Face ── */}
+                  <div
+                    className="absolute inset-0 flex flex-col items-start justify-center p-4 rounded-xl bg-gradient-to-br from-slate-800 to-slate-900"
+                    style={{ backfaceVisibility: "hidden", WebkitBackfaceVisibility: "hidden", transform: "rotateY(180deg)" }}
+                  >
+                    <p className="text-xs font-medium text-slate-300 leading-relaxed line-clamp-5">
+                      {cat.description}
+                    </p>
+                    <div className="mt-4 flex items-center gap-1 text-[10px] font-semibold text-primary-400">
+                      <span>View FAQs</span>
+                      <ArrowRight size={12} />
+                    </div>
                   </div>
                 </div>
               );
