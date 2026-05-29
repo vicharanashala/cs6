@@ -34,7 +34,7 @@ const runDuplicateTests = async () => {
     // 2. Create questions in the database
     // Connect to database to associate organization ID directly
     console.log('[Database] Connecting to setup organization questions...');
-    await mongoose.connect('mongodb://ahanabanerjee4:vFObx0OdPRHcitaT@ac-fgxefuf-shard-00-00.poetmkl.mongodb.net:27017,ac-fgxefuf-shard-00-01.poetmkl.mongodb.net:27017,ac-fgxefuf-shard-00-02.poetmkl.mongodb.net:27017/?ssl=true&replicaSet=atlas-134l8s-shard-0&authSource=admin&appName=faq');
+    await mongoose.connect(process.env.MONGODB_URI);
     
     // Create Question 1 belonging to Org 1
     console.log('\n[3] Creating Question 1 (Org 1)...');

@@ -37,7 +37,7 @@ const runTroubleshootingTests = async () => {
 
     // Connect database and set role to admin
     console.log('[Database] Connecting to promote admin...');
-    await mongoose.connect('mongodb://ahanabanerjee4:vFObx0OdPRHcitaT@ac-fgxefuf-shard-00-00.poetmkl.mongodb.net:27017,ac-fgxefuf-shard-00-01.poetmkl.mongodb.net:27017,ac-fgxefuf-shard-00-02.poetmkl.mongodb.net:27017/?ssl=true&replicaSet=atlas-134l8s-shard-0&authSource=admin&appName=faq');
+    await mongoose.connect(process.env.MONGODB_URI);
     await mongoose.connection.db.collection('users').updateOne(
       { _id: new mongoose.Types.ObjectId(adminId) },
       { $set: { role: 'admin' } }
