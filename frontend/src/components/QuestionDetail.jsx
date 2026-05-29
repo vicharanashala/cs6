@@ -540,30 +540,33 @@ const QuestionDetail = ({ question, onBack, currentUser, onAuthRequired }) => {
                   </button>
                 )}
 
-                {/* Edit & Delete (Author or admin) */}
-                {(currentUser?._id === currentQuestion.author?._id || isModeratorOrAdmin) && (
-                  <>
-                    <button
-                      onClick={() => setIsEditingQuestion(true)}
-                      className="flex items-center gap-1 rounded bg-surface hover:bg-surface-lighter py-1.5 px-3 text-xs text-gray-300 hover:text-white border border-white/5 transition-colors"
-                      title="Edit Question"
-                    >
-                      <Edit size={12} />
-                      Edit
-                    </button>
-                    <button
-                      onClick={handleDeleteQuestion}
-                      className="flex items-center gap-1 rounded bg-red-500/10 border border-red-500/20 py-1.5 px-3 text-xs text-red-400 hover:bg-red-500/20 transition-colors"
-                      title="Delete Question"
-                    >
-                      <Trash2 size={12} />
-                      Delete
-                    </button>
-                  </>
+                {/* Edit (Author only, not admin) */}
+                {currentUser?._id === currentQuestion.author?._id && !isAdmin && (
+                  <button
+                    onClick={() => setIsEditingQuestion(true)}
+                    className="flex items-center gap-1 rounded bg-surface hover:bg-surface-lighter py-1.5 px-3 text-xs text-gray-300 hover:text-white border border-white/5 transition-colors"
+                    title="Edit Question"
+                  >
+                    <Edit size={12} />
+                    Edit
+                  </button>
                 )}
 
-                {/* Report Question (Any logged in user who isn't the author and author is not admin) */}
+                {/* Delete (Author or admin) */}
+                {(currentUser?._id === currentQuestion.author?._id || isAdmin) && (
+                  <button
+                    onClick={handleDeleteQuestion}
+                    className="flex items-center gap-1 rounded bg-red-500/10 border border-red-500/20 py-1.5 px-3 text-xs text-red-400 hover:bg-red-500/20 transition-colors"
+                    title="Delete Question"
+                  >
+                    <Trash2 size={12} />
+                    Delete
+                  </button>
+                )}
+
+                {/* Report Question (Any logged in user who isn't the author, author is not admin, and current user is not admin) */}
                 {currentUser && 
+                 !isAdmin &&
                  currentUser._id !== currentQuestion.author?._id && 
                  currentQuestion.author?.role !== "admin" && (
                   <button
@@ -725,7 +728,8 @@ const QuestionDetail = ({ question, onBack, currentUser, onAuthRequired }) => {
                         </div>
                       )}
 
-                      {/* Vote Buttons (Upvote/Downvote block) */}
+                      {/* Vote Buttons (Upvote/Downvote block) - hidden for admins */}
+                      {!isAdmin && (
                       <div className="flex items-center gap-1 bg-surface rounded-lg p-1 border border-white/5">
                         <button
                           onClick={() => handleVote(ans._id, "upvote")}
@@ -759,6 +763,7 @@ const QuestionDetail = ({ question, onBack, currentUser, onAuthRequired }) => {
                           <ChevronDown size={14} />
                         </button>
                       </div>
+                      )}
 
                       {/* Mark Best button (Admin/Mod, if resolved question doesn't have it or toggling) */}
                       {isModeratorOrAdmin && !ans.isBestAnswer && (
@@ -771,8 +776,9 @@ const QuestionDetail = ({ question, onBack, currentUser, onAuthRequired }) => {
                         </button>
                       )}
 
-                      {/* Report Answer (Any logged in user who isn't the author and author is not admin) */}
+                      {/* Report Answer (Any logged in user who isn't the author, author is not admin, and current user is not admin) */}
                       {currentUser && 
+                       !isAdmin &&
                        currentUser._id !== ans.author?._id && 
                        ans.author?.role !== "admin" && (
                         <button
@@ -793,22 +799,20 @@ const QuestionDetail = ({ question, onBack, currentUser, onAuthRequired }) => {
                         </button>
                       )}
 
-                      {/* Edit & Delete (Author or admin) */}
-                      {(currentUser?._id === ans.author?._id || isModeratorOrAdmin) && (
+                      {/* Edit & Delete (Author only, not admin viewing others' answers) */}
+                      {currentUser?._id === ans.author?._id && !isAdmin && (
                         <div className="flex gap-1">
-                          {currentUser?._id === ans.author?._id && (
-                            <button
-                              onClick={() => {
-                                setEditingAnswerId(ans._id);
-                                setEditAnswerBody(ans.body);
-                                setEditAnswerError("");
-                              }}
-                              className="p-1.5 text-gray-500 hover:text-white transition-colors"
-                              title="Edit Answer"
-                            >
-                              <Edit size={12} />
-                            </button>
-                          )}
+                          <button
+                            onClick={() => {
+                              setEditingAnswerId(ans._id);
+                              setEditAnswerBody(ans.body);
+                              setEditAnswerError("");
+                            }}
+                            className="p-1.5 text-gray-500 hover:text-white transition-colors"
+                            title="Edit Answer"
+                          >
+                            <Edit size={12} />
+                          </button>
                           <button
                             onClick={() => handleDeleteAnswer(ans._id)}
                             className="p-1.5 text-red-500/50 hover:text-red-400 transition-colors"
