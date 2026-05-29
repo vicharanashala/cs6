@@ -37,6 +37,7 @@ const QuestionDetail = ({ question, onBack, currentUser, onAuthRequired }) => {
   const [reportReason, setReportReason] = useState("spam");
   const [reportDesc, setReportDesc] = useState("");
   const [submittingReport, setSubmittingReport] = useState(false);
+  const [reportedIds, setReportedIds] = useState(new Set()); // IDs the current user already reported
 
   const handleReportSubmit = async (e) => {
     e.preventDefault();
@@ -54,6 +55,7 @@ const QuestionDetail = ({ question, onBack, currentUser, onAuthRequired }) => {
       });
       if (response.data.success) {
         setFeedbackMsg(`Thank you! The ${reportTarget.type} has been reported for review.`);
+        setReportedIds(prev => new Set(prev).add(reportTarget.id));
         setIsReportModalOpen(false);
         setReportDesc("");
         setReportReason("spam");
@@ -108,7 +110,21 @@ const QuestionDetail = ({ question, onBack, currentUser, onAuthRequired }) => {
   useEffect(() => {
     fetchQuestionDetails();
     fetchAnswers();
+    if (currentUser) {
+      fetchMyReports();
+    }
   }, [question._id]);
+
+  const fetchMyReports = async () => {
+    try {
+      const response = await api.get("/reports/my");
+      if (response.data.success) {
+        setReportedIds(new Set(response.data.data.map(r => r.targetId)));
+      }
+    } catch (error) {
+      console.error("Error fetching user reports:", error);
+    }
+  };
 
   const fetchQuestionDetails = async () => {
     try {
@@ -555,11 +571,16 @@ const QuestionDetail = ({ question, onBack, currentUser, onAuthRequired }) => {
                       setReportTarget({ id: currentQuestion._id, type: "question" });
                       setIsReportModalOpen(true);
                     }}
-                    className="flex items-center gap-1 rounded bg-red-500/10 border border-red-500/20 py-1.5 px-3 text-xs text-red-400 hover:bg-red-500/20 transition-colors"
-                    title="Report Question"
+                    className={`flex items-center gap-1 rounded py-1.5 px-3 text-xs transition-colors border ${
+                      reportedIds.has(currentQuestion._id)
+                        ? "bg-gray-500/10 border-gray-500/20 text-gray-500 cursor-not-allowed opacity-50"
+                        : "bg-red-500/10 border-red-500/20 text-red-400 hover:bg-red-500/20"
+                    }`}
+                    title={reportedIds.has(currentQuestion._id) ? "You have already reported this question" : "Report Question"}
+                    disabled={reportedIds.has(currentQuestion._id)}
                   >
                     <ShieldAlert size={12} />
-                    Report
+                    {reportedIds.has(currentQuestion._id) ? "Reported" : "Report"}
                   </button>
                 )}
               </div>
@@ -759,11 +780,16 @@ const QuestionDetail = ({ question, onBack, currentUser, onAuthRequired }) => {
                             setReportTarget({ id: ans._id, type: "answer" });
                             setIsReportModalOpen(true);
                           }}
-                          className="flex items-center gap-1 rounded bg-red-500/10 border border-red-500/20 py-1 px-2.5 text-[10px] font-bold text-red-400 hover:bg-red-500/25 transition-colors"
-                          title="Report Answer"
+                          className={`flex items-center gap-1 rounded py-1 px-2.5 text-[10px] font-bold transition-colors border ${
+                            reportedIds.has(ans._id)
+                              ? "bg-gray-500/10 border-gray-500/20 text-gray-500 cursor-not-allowed opacity-50"
+                              : "bg-red-500/10 border-red-500/20 text-red-400 hover:bg-red-500/25"
+                          }`}
+                          title={reportedIds.has(ans._id) ? "You have already reported this answer" : "Report Answer"}
+                          disabled={reportedIds.has(ans._id)}
                         >
                           <ShieldAlert size={10} />
-                          Report
+                          {reportedIds.has(ans._id) ? "Reported" : "Report"}
                         </button>
                       )}
 

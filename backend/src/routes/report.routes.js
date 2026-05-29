@@ -5,7 +5,8 @@ import {
   getReports, 
   getReportById, 
   resolveReport, 
-  dismissReport 
+  dismissReport,
+  getMyReports 
 } from "../controllers/reports.controller.js";
 import { validateRequest } from "../middlewares/validate.js";
 import authMiddleware from "../middlewares/authMiddleware.js";
@@ -28,6 +29,9 @@ router.post(
   validateRequest,
   createReport
 );
+
+// Authenticated users can check their own reports
+router.get("/my", authMiddleware, getMyReports);
 
 // All other report management endpoints require Moderator/Admin privileges
 router.use(authMiddleware);

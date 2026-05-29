@@ -26,6 +26,22 @@ export const createReport = async (req, res, next) => {
       });
     }
 
+    // Prevent duplicate reports from the same user on the same content
+    const existingReport = await Report.findOne({
+      targetId,
+      reportedBy: req.user.userId,
+      status: { $in: ['open', 'resolved', 'escalated'] }
+    });
+    if (existingReport) {
+      return res.status(409).json({
+        success: false,
+        error: {
+          code: 'DUPLICATE_REPORT',
+          message: 'You have already reported this content'
+        }
+      });
+    }
+
     // Prevent reporting admin content
     if (target.author) {
       const authorUser = await User.findById(target.author);
@@ -228,6 +244,24 @@ export const dismissReport = async (req, res, next) => {
     return res.status(200).json({
       success: true,
       data: report
+    });
+  } catch (error) {
+    next(error);
+  }
+};
+
+// Returns the list of targetIds the current user has already reported
+export const getMyReports = async (req, res, next) => {
+  try {
+    const reports = await Report.find(
+      { reportedBy: req.user.userId },
+      { targetId: 1, targetType: 1, _id: 0 }
+    ).lean();
+
+    // Return a simple array of { targetId, targetType } objects
+    return res.status(200).json({
+      success: true,
+      data: reports.map(r => ({ targetId: r.targetId.toString(), targetType: r.targetType }))
     });
   } catch (error) {
     next(error);
