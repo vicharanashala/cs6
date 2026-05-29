@@ -688,30 +688,6 @@ const MyProfile = ({ currentUser, onBack, onQuestionClick, onAskClick, initialTa
                 </button>
 
                 <button
-                  onClick={() => setActiveTab("all-faqs")}
-                  className={`flex items-center gap-3 w-full rounded-lg px-3.5 py-2.5 text-sm font-semibold transition-all duration-200 ${
-                    activeTab === "all-faqs"
-                      ? "bg-blue-950/40 text-blue-400 border-l-2 border-primary-500"
-                      : "text-gray-300 hover:text-white hover:bg-white/5"
-                  }`}
-                >
-                  <MessageSquare size={16} className={activeTab === "all-faqs" ? "text-blue-400" : "text-gray-400"} />
-                  All FAQs
-                </button>
-
-                <button
-                  onClick={() => setActiveTab("categories")}
-                  className={`flex items-center gap-3 w-full rounded-lg px-3.5 py-2.5 text-sm font-semibold transition-all duration-200 ${
-                    activeTab === "categories"
-                      ? "bg-blue-950/40 text-blue-400 border-l-2 border-primary-500"
-                      : "text-gray-300 hover:text-white hover:bg-white/5"
-                  }`}
-                >
-                  <Folder size={16} className={activeTab === "categories" ? "text-blue-400" : "text-gray-400"} />
-                  Categories
-                </button>
-
-                <button
                   onClick={() => setActiveTab("popular")}
                   className={`flex items-center gap-3 w-full rounded-lg px-3.5 py-2.5 text-sm font-semibold transition-all duration-200 ${
                     activeTab === "popular"
@@ -1145,8 +1121,8 @@ const MyProfile = ({ currentUser, onBack, onQuestionClick, onAskClick, initialTa
                 )}
               </div>
             )}
-
-            {/* POPULAR SUB-VIEW */}
+            
+           {/* POPULAR SUB-VIEW */}
             {activeTab === "popular" && (
               <div className="space-y-6">
                 <div>
