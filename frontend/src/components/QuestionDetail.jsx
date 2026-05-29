@@ -31,6 +31,41 @@ const QuestionDetail = ({ question, onBack, currentUser, onAuthRequired }) => {
 
   const [isSaved, setIsSaved] = useState(false);
 
+  // Report Modal states
+  const [isReportModalOpen, setIsReportModalOpen] = useState(false);
+  const [reportTarget, setReportTarget] = useState(null); // { id, type }
+  const [reportReason, setReportReason] = useState("spam");
+  const [reportDesc, setReportDesc] = useState("");
+  const [submittingReport, setSubmittingReport] = useState(false);
+
+  const handleReportSubmit = async (e) => {
+    e.preventDefault();
+    if (!currentUser) {
+      onAuthRequired();
+      return;
+    }
+    setSubmittingReport(true);
+    try {
+      const response = await api.post("/reports", {
+        targetType: reportTarget.type,
+        targetId: reportTarget.id,
+        type: reportReason,
+        description: reportDesc
+      });
+      if (response.data.success) {
+        setFeedbackMsg(`Thank you! The ${reportTarget.type} has been reported for review.`);
+        setIsReportModalOpen(false);
+        setReportDesc("");
+        setReportReason("spam");
+      }
+    } catch (error) {
+      console.error("Error reporting content:", error);
+      alert(error.response?.data?.error?.message || "Failed to submit report.");
+    } finally {
+      setSubmittingReport(false);
+    }
+  };
+
   useEffect(() => {
     if (currentUser?._id && question?._id) {
       fetchBookmarkStatus();
@@ -506,6 +541,21 @@ const QuestionDetail = ({ question, onBack, currentUser, onAuthRequired }) => {
                     </button>
                   </>
                 )}
+
+                {/* Report Question (Any logged in user who isn't the author) */}
+                {currentUser && currentUser._id !== currentQuestion.author?._id && (
+                  <button
+                    onClick={() => {
+                      setReportTarget({ id: currentQuestion._id, type: "question" });
+                      setIsReportModalOpen(true);
+                    }}
+                    className="flex items-center gap-1 rounded bg-red-500/10 border border-red-500/20 py-1.5 px-3 text-xs text-red-400 hover:bg-red-500/20 transition-colors"
+                    title="Report Question"
+                  >
+                    <ShieldAlert size={12} />
+                    Report
+                  </button>
+                )}
               </div>
             </div>
 
@@ -694,6 +744,21 @@ const QuestionDetail = ({ question, onBack, currentUser, onAuthRequired }) => {
                         </button>
                       )}
 
+                      {/* Report Answer (Any logged in user who isn't the author) */}
+                      {currentUser && currentUser._id !== ans.author?._id && (
+                        <button
+                          onClick={() => {
+                            setReportTarget({ id: ans._id, type: "answer" });
+                            setIsReportModalOpen(true);
+                          }}
+                          className="flex items-center gap-1 rounded bg-red-500/10 border border-red-500/20 py-1 px-2.5 text-[10px] font-bold text-red-400 hover:bg-red-500/25 transition-colors"
+                          title="Report Answer"
+                        >
+                          <ShieldAlert size={10} />
+                          Report
+                        </button>
+                      )}
+
                       {/* Edit & Delete (Author or admin) */}
                       {(currentUser?._id === ans.author?._id || isModeratorOrAdmin) && (
                         <div className="flex gap-1">
@@ -775,6 +840,85 @@ const QuestionDetail = ({ question, onBack, currentUser, onAuthRequired }) => {
           </div>
         </form>
       </div>
+
+      {/* Report Modal */}
+      {isReportModalOpen && reportTarget && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm px-4">
+          <div className="relative w-full max-w-md rounded-2xl border border-white/10 bg-surface-light p-6 shadow-2xl transition-all duration-300">
+            
+            {/* Close Button */}
+            <button 
+              onClick={() => setIsReportModalOpen(false)}
+              className="absolute top-4 right-4 text-gray-400 hover:text-white transition-colors"
+            >
+              <X size={20} />
+            </button>
+
+            {/* Header */}
+            <div className="mb-6">
+              <h3 className="text-lg font-bold text-white flex items-center gap-2">
+                <ShieldAlert className="text-red-400" />
+                Report Content
+              </h3>
+              <p className="mt-1 text-xs text-gray-400">
+                Help us keep VicharanaShala safe and high quality. Tell us what is wrong with this {reportTarget.type}.
+              </p>
+            </div>
+
+            {/* Form */}
+            <form onSubmit={handleReportSubmit} className="space-y-4">
+              <div>
+                <label className="block text-xs font-semibold text-gray-400 uppercase mb-1.5">
+                  Reason for Reporting
+                </label>
+                <select
+                  value={reportReason}
+                  onChange={(e) => setReportReason(e.target.value)}
+                  required
+                  className="w-full rounded-lg border border-white/10 bg-surface py-2.5 px-3 text-sm text-white focus:border-primary-500 focus:outline-none"
+                >
+                  <option value="spam" className="text-white bg-surface-light">Spam</option>
+                  <option value="abuse" className="text-white bg-surface-light">Abuse / Harassment</option>
+                  <option value="misinformation" className="text-white bg-surface-light">Misinformation</option>
+                  <option value="irrelevant" className="text-white bg-surface-light">Irrelevant Content</option>
+                  <option value="outdated" className="text-white bg-surface-light">Outdated Content</option>
+                </select>
+              </div>
+
+              <div>
+                <label className="block text-xs font-semibold text-gray-400 uppercase mb-1.5">
+                  Optional Details
+                </label>
+                <textarea
+                  value={reportDesc}
+                  onChange={(e) => setReportDesc(e.target.value)}
+                  rows={4}
+                  placeholder="Provide additional details or context about why you are reporting this content..."
+                  className="w-full rounded-lg border border-white/10 bg-surface py-2.5 px-4 text-sm text-white placeholder-gray-600 focus:border-primary-500 focus:outline-none resize-none"
+                />
+              </div>
+
+              <div className="flex gap-3 pt-2">
+                <button
+                  type="button"
+                  onClick={() => setIsReportModalOpen(false)}
+                  className="flex-1 rounded-lg border border-white/10 bg-surface hover:bg-surface-lighter py-2 px-4 text-xs font-semibold text-white transition-all duration-200"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="submit"
+                  disabled={submittingReport}
+                  className="flex-[2] rounded-lg bg-red-500 hover:bg-red-600 py-2 px-4 text-xs font-semibold text-white transition-all duration-300 disabled:opacity-50 flex items-center justify-center gap-1.5"
+                >
+                  {submittingReport ? "Submitting..." : "Submit Report"}
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
     </div>
   );
 };

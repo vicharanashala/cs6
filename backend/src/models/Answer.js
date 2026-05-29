@@ -54,4 +54,6 @@ answerSchema.index({ questionId: 1 });
 answerSchema.index({ questionId: 1, status: 1 });
 answerSchema.index({ author: 1 });
 
-export default mongoose.model('Answer', answerSchema);
+const AnswerModel = mongoose.model('Answer', answerSchema);
+mongoose.model('answer', answerSchema);
+export default AnswerModel;

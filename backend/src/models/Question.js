@@ -69,4 +69,6 @@ questionSchema.index({ tags: 1 });
 questionSchema.index({ isFAQ: 1 });
 questionSchema.index({ title: 'text', body: 'text' });
 
-export default mongoose.model('Question', questionSchema);
+const QuestionModel = mongoose.model('Question', questionSchema);
+mongoose.model('question', questionSchema);
+export default QuestionModel;
