@@ -1,7 +1,9 @@
 import Question from '../models/Question.js';
 import Answer from '../models/Answer.js';
 import AuditLog from '../models/AuditLog.js';
+import Report from '../models/Report.js';
 import { checkDuplicate, findSimilarQuestions, findDuplicateQuestions } from '../services/duplicate.service.js';
+import { moderateText } from '../utils/moderation.js';
 
 export const getQuestions = async (req, res, next) => {
   try {
@@ -88,6 +90,7 @@ export const createQuestion = async (req, res, next) => {
       });
     }
 
+    // Step 2 — Temporarily store content in pending state
     const newQuestion = new Question({
       title,
       body,
@@ -95,15 +98,86 @@ export const createQuestion = async (req, res, next) => {
       category,
       author: req.user.userId,
       organizationId: req.user.organizationId || null,
-      status: 'unresolved'
+      status: 'pending',
+      moderationStatus: 'pending'
     });
 
     await newQuestion.save();
 
-    return res.status(201).json({
-      success: true,
-      data: newQuestion
-    });
+    // Check staff privilege (admin/moderator questions are auto-approved)
+    const isStaff = ['moderator', 'admin'].includes(req.user.role);
+    if (isStaff) {
+      newQuestion.status = 'unresolved';
+      newQuestion.moderationStatus = 'approved';
+      await newQuestion.save();
+
+      return res.status(201).json({
+        success: true,
+        data: newQuestion
+      });
+    }
+
+    // Step 3 — Moderation API Called
+    const modResult = await moderateText(`${title} ${body}`);
+
+    // Step 5 — Moderation Decision Engine
+    if (modResult.isHighlyUnsafe) {
+      // Content auto-blocked / rejected
+      newQuestion.status = 'deleted';
+      newQuestion.moderationStatus = 'rejected';
+      await newQuestion.save();
+
+      // Create high-severity AI report
+      await Report.create({
+        targetType: 'question',
+        targetId: newQuestion._id,
+        reportedBy: null,
+        type: 'abuse',
+        description: `${modResult.reason} (Auto-Moderation blocked highly unsafe content)`,
+        aiSeverity: 'high',
+        status: 'open'
+      });
+
+      return res.status(400).json({
+        success: false,
+        error: {
+          code: 'AI_MODERATION_BLOCKED',
+          message: 'Your question was auto-blocked because it contains highly unsafe or abusive language.'
+        }
+      });
+    } else if (modResult.isSuspicious) {
+      // Content temporarily hidden / flagged
+      newQuestion.status = 'flagged';
+      newQuestion.moderationStatus = 'flagged';
+      await newQuestion.save();
+
+      // Create medium-severity AI report
+      await Report.create({
+        targetType: 'question',
+        targetId: newQuestion._id,
+        reportedBy: null,
+        type: 'abuse',
+        description: `${modResult.reason} (Auto-Moderation flagged suspicious content)`,
+        aiSeverity: 'medium',
+        status: 'open'
+      });
+
+      return res.status(201).json({
+        success: true,
+        message: 'Your question has been received and is currently under moderator review.',
+        data: newQuestion
+      });
+    } else {
+      // Content is safe
+      newQuestion.status = 'unresolved';
+      newQuestion.moderationStatus = 'approved';
+      await newQuestion.save();
+
+      return res.status(201).json({
+        success: true,
+        data: newQuestion
+      });
+    }
   } catch (error) {
     next(error);
   }

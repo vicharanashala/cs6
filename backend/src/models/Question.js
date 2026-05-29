@@ -34,8 +34,8 @@ const questionSchema = new mongoose.Schema({
   },
   status: {
     type: String,
-    enum: ['unresolved', 'flagged', 'answered', 'resolved', 'open', 'closed', 'deleted'],
-    default: 'unresolved'
+    enum: ['pending', 'unresolved', 'flagged', 'answered', 'resolved', 'open', 'closed', 'deleted'],
+    default: 'pending'
   },
   isFAQ: {
     type: Boolean,
@@ -57,8 +57,8 @@ const questionSchema = new mongoose.Schema({
   },
   moderationStatus: {
     type: String,
-    enum: ['visible', 'flagged', 'under_review', 'rejected', 'approved'],
-    default: 'visible'
+    enum: ['pending', 'visible', 'flagged', 'under_review', 'rejected', 'approved'],
+    default: 'pending'
   }
 }, { timestamps: true });
 

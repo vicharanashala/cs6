@@ -97,6 +97,9 @@ export const approveItem = async (req, res, next) => {
 
     if (target) {
       target.moderationStatus = 'approved';
+      if (['flagged', 'pending'].includes(target.status)) {
+        target.status = 'unresolved';
+      }
       await target.save();
     } else {
       target = await Answer.findById(targetId);

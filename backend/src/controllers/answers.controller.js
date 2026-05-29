@@ -2,6 +2,8 @@ import Answer from '../models/Answer.js';
 import Question from '../models/Question.js';
 import Notification from '../models/Notification.js';
 import AuditLog from '../models/AuditLog.js';
+import Report from '../models/Report.js';
+import { moderateText } from '../utils/moderation.js';
 
 export const getAnswersForQuestion = async (req, res, next) => {
   try {
@@ -16,7 +18,8 @@ export const getAnswersForQuestion = async (req, res, next) => {
 
     const answers = await Answer.find(query)
       .populate('author', 'username name avatar role badgeLevel')
-      .sort({ isBestAnswer: -1, upvoteCount: -1, createdAt: 1 });
+      .sort({ isBestAnswer: -1, reputationScore: -1, createdAt: 1 })
+      .lean();
 
     return res.status(200).json({
       success: true,
@@ -43,6 +46,7 @@ export const createAnswer = async (req, res, next) => {
       });
     }
 
+    // Step 2 — Temporarily store content in pending state
     const newAnswer = new Answer({
       questionId: id,
       author: req.user.userId,
@@ -53,27 +57,114 @@ export const createAnswer = async (req, res, next) => {
 
     await newAnswer.save();
 
-    // Dynamically assign 'answered' state once a question receives community answer
-    if (question.status === 'unresolved') {
-      question.status = 'answered';
-      await question.save();
-    }
+    // Check staff privilege (admin/moderator answers are auto-approved)
+    const isStaff = ['moderator', 'admin'].includes(req.user.role);
+    if (isStaff) {
+      newAnswer.status = 'visible';
+      newAnswer.moderationState = 'approved';
+      await newAnswer.save();
 
-    // Trigger Notification for question owner
-    if (question.author.toString() !== req.user.userId) {
-      await Notification.create({
-        userId: question.author,
-        type: 'answer_posted',
-        referenceId: question._id,
-        referenceType: 'question',
-        message: `Someone answered your question: "${question.title.slice(0, 60)}..."`
+      // Dynamically assign 'answered' state once a question receives community answer
+      if (question.status === 'unresolved') {
+        question.status = 'answered';
+        await question.save();
+      }
+
+      // Trigger Notification for question owner
+      if (question.author.toString() !== req.user.userId) {
+        await Notification.create({
+          userId: question.author,
+          type: 'answer_posted',
+          referenceId: question._id,
+          referenceType: 'question',
+          message: `Someone answered your question: "${question.title.slice(0, 60)}..."`
+        });
+      }
+
+      return res.status(201).json({
+        success: true,
+        data: newAnswer
       });
     }
 
-    return res.status(201).json({
-      success: true,
-      data: newAnswer
-    });
+    // Step 3 — Moderation API Called
+    const modResult = await moderateText(body);
+
+    // Step 5 — Moderation Decision Engine
+    if (modResult.isHighlyUnsafe) {
+      // Content auto-blocked / rejected
+      newAnswer.status = 'rejected';
+      newAnswer.moderationState = 'rejected';
+      await newAnswer.save();
+
+      // Create high-severity AI report
+      await Report.create({
+        targetType: 'answer',
+        targetId: newAnswer._id,
+        reportedBy: null,
+        type: 'abuse',
+        description: `${modResult.reason} (Auto-Moderation blocked highly unsafe content)`,
+        aiSeverity: 'high',
+        status: 'open'
+      });
+
+      return res.status(400).json({
+        success: false,
+        error: {
+          code: 'AI_MODERATION_BLOCKED',
+          message: 'Your answer was auto-blocked because it contains highly unsafe or abusive language.'
+        }
+      });
+    } else if (modResult.isSuspicious) {
+      // Content temporarily hidden / flagged
+      newAnswer.status = 'flagged';
+      newAnswer.moderationState = 'flagged';
+      await newAnswer.save();
+
+      // Create medium-severity AI report
+      await Report.create({
+        targetType: 'answer',
+        targetId: newAnswer._id,
+        reportedBy: null,
+        type: 'abuse',
+        description: `${modResult.reason} (Auto-Moderation flagged suspicious content)`,
+        aiSeverity: 'medium',
+        status: 'open'
+      });
+
+      return res.status(201).json({
+        success: true,
+        message: 'Your answer has been received and is currently under moderator review.',
+        data: newAnswer
+      });
+    } else {
+      // Content is safe
+      newAnswer.status = 'visible';
+      newAnswer.moderationState = 'approved';
+      await newAnswer.save();
+
+      // Dynamically assign 'answered' state once a question receives community answer
+      if (question.status === 'unresolved') {
+        question.status = 'answered';
+        await question.save();
+      }
+
+      // Trigger Notification for question owner
+      if (question.author.toString() !== req.user.userId) {
+        await Notification.create({
+          userId: question.author,
+          type: 'answer_posted',
+          referenceId: question._id,
+          referenceType: 'question',
+          message: `Someone answered your question: "${question.title.slice(0, 60)}..."`
+        });
+      }
+
+      return res.status(201).json({
+        success: true,
+        data: newAnswer
+      });
+    }
   } catch (error) {
     next(error);
   }
