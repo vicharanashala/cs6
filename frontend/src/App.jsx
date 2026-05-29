@@ -150,6 +150,11 @@ function App() {
             }}
             onAskClick={handleAskQuestionClick}
             initialTab={initialTab}
+            onCategorySelect={(cat) => {
+              setSelectedCategory(cat);
+              setBackView("profile");
+              setViewState("category");
+            }}
           />
         )}
       </main>
