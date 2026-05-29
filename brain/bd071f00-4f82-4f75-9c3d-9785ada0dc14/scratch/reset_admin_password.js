@@ -1,7 +1,7 @@
 import mongoose from 'file:///d:/Projects/FAQ/backend/node_modules/mongoose/index.js';
 import bcrypt from 'file:///d:/Projects/FAQ/backend/node_modules/bcrypt/bcrypt.js';
 
-const MONGODB_URI = 'mongodb://ahanabanerjee4:vFObx0OdPRHcitaT@ac-fgxefuf-shard-00-00.poetmkl.mongodb.net:27017,ac-fgxefuf-shard-00-01.poetmkl.mongodb.net:27017,ac-fgxefuf-shard-00-02.poetmkl.mongodb.net:27017/?ssl=true&replicaSet=atlas-134l8s-shard-0&authSource=admin&appName=faq';
+const MONGODB_URI = process.env.MONGODB_URI;
 
 const resetPassword = async () => {
   try {
@@ -9,9 +9,9 @@ const resetPassword = async () => {
     await mongoose.connect(MONGODB_URI);
     console.log('Database connected successfully.');
 
-    const username = 'admin_31241';
-    const email = 'admin_3544@example.com';
-    const newPassword = 'Admin@123';
+    const username = process.env.username;
+    const email = process.env.email;
+    const newPassword = process.env.password;
 
     // Hash the password using bcrypt
     console.log('Hashing new password...');
