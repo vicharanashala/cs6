@@ -58,3 +58,41 @@ export const checkDuplicate = async (title, body = '', threshold = 0.4) => {
     topMatch: null
   };
 };
+
+/**
+ * Find duplicate questions restricted to an organization and rank them with similarity scores
+ * @param {string} title 
+ * @param {string} organizationId 
+ * @param {Array<string>} tags 
+ * @returns {Promise<Array>} List of duplicates with similarity metrics
+ */
+export const findDuplicateQuestions = async (title, organizationId, tags = []) => {
+  const filter = { status: { $ne: 'deleted' } };
+  if (organizationId) {
+    filter.organizationId = organizationId;
+  }
+
+  const questions = await Question.find(filter).lean();
+
+  if (questions.length === 0) return [];
+
+  const options = {
+    keys: [
+      { name: 'title', weight: 0.7 },
+      { name: 'tags', weight: 0.3 }
+    ],
+    includeScore: true,
+    threshold: 0.6
+  };
+
+  const fuse = new Fuse(questions, options);
+  const results = fuse.search(title);
+
+  return results.map(r => ({
+    _id: r.item._id,
+    title: r.item.title,
+    isFAQ: r.item.isFAQ || false,
+    similarity: Math.round((1 - r.score) * 100),
+    link: `/questions/${r.item._id}`
+  }));
+};

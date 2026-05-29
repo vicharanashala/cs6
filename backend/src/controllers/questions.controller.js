@@ -1,7 +1,7 @@
 import Question from '../models/Question.js';
 import Answer from '../models/Answer.js';
 import AuditLog from '../models/AuditLog.js';
-import { checkDuplicate, findSimilarQuestions } from '../services/duplicate.service.js';
+import { checkDuplicate, findSimilarQuestions, findDuplicateQuestions } from '../services/duplicate.service.js';
 
 export const getQuestions = async (req, res, next) => {
   try {
@@ -354,6 +354,29 @@ export const getSimilarQuestions = async (req, res, next) => {
     }
 
     const matches = await findSimilarQuestions(title, body || '');
+    return res.status(200).json({
+      success: true,
+      data: matches.slice(0, 5) // Return top 5 matches
+    });
+  } catch (error) {
+    next(error);
+  }
+};
+
+export const getDuplicateQuestions = async (req, res, next) => {
+  try {
+    const { title, organizationId, tags } = req.body;
+    if (!title) {
+      return res.status(400).json({
+        success: false,
+        error: {
+          code: 'VALIDATION_ERROR',
+          message: 'Title is required for duplicate checking'
+        }
+      });
+    }
+
+    const matches = await findDuplicateQuestions(title, organizationId, tags || []);
     return res.status(200).json({
       success: true,
       data: matches.slice(0, 5) // Return top 5 matches

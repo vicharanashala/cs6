@@ -42,7 +42,15 @@ const QuestionModal = ({ isOpen, onClose, categories = [], onQuestionCreated, dr
         return;
       }
       try {
-        const response = await api.get(`/questions/similar?title=${encodeURIComponent(formData.title)}`);
+        const parsedTags = formData.tags
+          ? formData.tags.split(",").map(t => t.trim()).filter(t => t.length > 0)
+          : [];
+
+        const response = await api.post("/questions/duplicates", {
+          title: formData.title,
+          organizationId: currentUser?.organizationId || null,
+          tags: parsedTags
+        });
         if (response.data.success) {
           setSimilarQuestions(response.data.data || []);
         }
@@ -56,7 +64,7 @@ const QuestionModal = ({ isOpen, onClose, categories = [], onQuestionCreated, dr
     }, 500);
 
     return () => clearTimeout(delayDebounce);
-  }, [formData.title]);
+  }, [formData.title, formData.tags, currentUser]);
 
   if (!isOpen) return null;
 
@@ -253,25 +261,47 @@ const QuestionModal = ({ isOpen, onClose, categories = [], onQuestionCreated, dr
               {formData.title.length}/150 characters (min 10)
             </p>
             {similarQuestions.length > 0 && (
-              <div className="mt-3 rounded-lg bg-indigo-500/10 border border-indigo-500/25 p-3 text-xs select-none">
-                <p className="font-semibold text-indigo-300 mb-1.5 flex items-center gap-1.5">
+              <div className="mt-3 rounded-lg bg-indigo-500/10 border border-indigo-500/25 p-3.5 text-xs select-none">
+                <p className="font-bold text-indigo-300 mb-2 flex items-center gap-1.5 uppercase tracking-wider text-[10px]">
                   <HelpCircle size={14} className="text-indigo-400" />
-                  Is your question already answered? Check these:
+                  Similar Questions Found
                 </p>
-                <div className="space-y-1.5 max-h-32 overflow-y-auto pr-1">
+                <div className="space-y-2 max-h-40 overflow-y-auto pr-1">
                   {similarQuestions.map((q) => (
                     <div 
                       key={q._id}
-                      onClick={() => {
-                        if (onQuestionClick) onQuestionClick(q);
-                      }}
-                      className="hover:text-primary-300 hover:underline cursor-pointer font-medium text-gray-300 truncate text-[11px] block"
-                      title={q.title}
+                      className="flex items-center justify-between gap-3 p-2 rounded bg-surface/50 border border-white/5"
                     >
-                      • "{q.title}"
+                      <div className="min-w-0 flex-1">
+                        <div className="flex items-center gap-2 mb-0.5 animate-pulse-subtle">
+                          {q.isFAQ && (
+                            <span className="rounded bg-emerald-500/10 text-emerald-400 border border-emerald-500/20 px-1 py-0.5 text-[8px] font-bold uppercase tracking-wider">
+                              FAQ
+                            </span>
+                          )}
+                          <span className="text-[10px] font-semibold text-indigo-400">
+                            {q.similarity}% Match
+                          </span>
+                        </div>
+                        <p className="text-gray-300 font-medium truncate text-[11px]">{q.title}</p>
+                      </div>
+                      <div className="flex items-center gap-1.5 shrink-0">
+                        <button
+                          type="button"
+                          onClick={() => {
+                            if (onQuestionClick) onQuestionClick(q);
+                          }}
+                          className="rounded bg-indigo-500 hover:bg-indigo-600 px-2 py-1 text-[10px] font-bold text-white transition-colors"
+                        >
+                          Open Question
+                        </button>
+                      </div>
                     </div>
                   ))}
                 </div>
+                <p className="mt-2 text-[10px] text-gray-400 italic">
+                  Not what you were looking for? You can continue posting your question below.
+                </p>
               </div>
             )}
           </div>

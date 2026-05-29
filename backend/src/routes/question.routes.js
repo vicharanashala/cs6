@@ -10,7 +10,8 @@ import {
   promoteQuestionToFAQ, 
   revertFAQ, 
   getFAQs, 
-  getSimilarQuestions 
+  getSimilarQuestions,
+  getDuplicateQuestions
 } from "../controllers/questions.controller.js";
 import { unifiedSearch } from "../controllers/search.controller.js";
 import { validateRequest } from "../middlewares/validate.js";
@@ -28,6 +29,7 @@ router.use("/:id/answers", answerRoutes);
 router.get("/", getQuestions);
 router.get("/search", unifiedSearch);
 router.get("/similar", getSimilarQuestions);
+router.post("/duplicates", getDuplicateQuestions);
 router.get("/faqs", getFAQs);
 router.get("/:id", getQuestionById);
 
