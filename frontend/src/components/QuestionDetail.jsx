@@ -32,32 +32,38 @@ const QuestionDetail = ({ question, onBack, currentUser, onAuthRequired }) => {
   const [isSaved, setIsSaved] = useState(false);
 
   useEffect(() => {
-    if (currentUser?._id && currentQuestion?._id) {
-      const saved = localStorage.getItem(`saved_faqs_${currentUser._id}`);
-      const savedList = saved ? JSON.parse(saved) : [];
-      setIsSaved(savedList.some(item => item._id === currentQuestion._id));
+    if (currentUser?._id && question?._id) {
+      fetchBookmarkStatus();
     }
-  }, [currentUser, currentQuestion]);
+  }, [currentUser, question._id]);
 
-  const handleToggleSave = () => {
+  const fetchBookmarkStatus = async () => {
+    try {
+      const response = await api.get("/bookmarks");
+      if (response.data.success) {
+        const isBookmarked = response.data.data.some(q => q._id === question._id);
+        setIsSaved(isBookmarked);
+      }
+    } catch (error) {
+      console.error("Error loading bookmark status:", error);
+    }
+  };
+
+  const handleToggleSave = async () => {
     if (!currentUser) {
       onAuthRequired();
       return;
     }
-    const savedKey = `saved_faqs_${currentUser._id}`;
-    const saved = localStorage.getItem(savedKey);
-    let savedList = saved ? JSON.parse(saved) : [];
-    const exists = savedList.some(item => item._id === currentQuestion._id);
-    if (exists) {
-      savedList = savedList.filter(item => item._id !== currentQuestion._id);
-      setIsSaved(false);
-      setFeedbackMsg("FAQ removed from saved list.");
-    } else {
-      savedList.push(currentQuestion);
-      setIsSaved(true);
-      setFeedbackMsg("FAQ bookmarked successfully!");
+    try {
+      const response = await api.post("/bookmarks/toggle", { questionId: question._id });
+      if (response.data.success) {
+        setIsSaved(response.data.isBookmarked);
+        setFeedbackMsg(response.data.message);
+      }
+    } catch (error) {
+      console.error("Error toggling bookmark:", error);
+      setFeedbackMsg("Failed to toggle bookmark status.");
     }
-    localStorage.setItem(savedKey, JSON.stringify(savedList));
   };
 
   useEffect(() => {

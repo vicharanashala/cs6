@@ -100,25 +100,21 @@ const MyProfile = ({ currentUser, onBack, onQuestionClick, onAskClick }) => {
     }
   };
 
-  const loadSavedFAQs = () => {
-    const saved = localStorage.getItem(`saved_faqs_${currentUser._id}`);
-    return saved ? JSON.parse(saved) : [];
-  };
-
-  const toggleSaveFAQ = (q) => {
-    const saved = loadSavedFAQs();
-    const isSaved = saved.some(item => item._id === q._id);
-    let updated;
-    if (isSaved) {
-      updated = saved.filter(item => item._id !== q._id);
-    } else {
-      updated = [...saved, q];
+  const toggleSaveFAQ = async (q) => {
+    try {
+      const response = await api.post("/bookmarks/toggle", { questionId: q._id });
+      if (response.data.success) {
+        setActionMessage(response.data.message);
+        // Refresh bookmarks list
+        const listRes = await api.get("/bookmarks");
+        if (listRes.data.success) {
+          setSavedQuestions(listRes.data.data || []);
+        }
+      }
+    } catch (error) {
+      console.error("Error toggling save:", error);
+      setActionMessage("Error toggling bookmark status.");
     }
-    localStorage.setItem(`saved_faqs_${currentUser._id}`, JSON.stringify(updated));
-    if (activeTab === "saved-faqs") {
-      setSavedQuestions(updated);
-    }
-    setActionMessage(isSaved ? "FAQ removed from saved list." : "FAQ bookmarked successfully!");
   };
 
   const loadDrafts = () => {
@@ -238,7 +234,10 @@ const MyProfile = ({ currentUser, onBack, onQuestionClick, onAskClick }) => {
         const response = await api.get("/questions?sort=newest");
         if (response.data.success) setNewQuestions(response.data.data || []);
       } else if (activeTab === "saved-faqs") {
-        setSavedQuestions(loadSavedFAQs());
+        const response = await api.get("/bookmarks");
+        if (response.data.success) {
+          setSavedQuestions(response.data.data || []);
+        }
       } else if (activeTab === "drafts") {
         setDrafts(loadDrafts());
       } else if (activeTab === "notifications") {
