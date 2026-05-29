@@ -3,14 +3,15 @@ import {
   Home as HomeIcon, MessageSquare, Folder, PlusCircle, FileText, 
   Clock, CheckCircle, XCircle, Settings, Headphones, ChevronDown, 
   Award, Shield, Mail, Calendar, ChevronRight, Eye, Check, X, 
-  AlertTriangle, Save, Loader2, Send
+  AlertTriangle, Save, Loader2, Send, ArrowLeft, GraduationCap,
+  Flame, Sun, Bookmark, Edit3, Bell, User as UserIcon, Trash
 } from "lucide-react";
 import api from "../api/axios";
 
 const MyProfile = ({ currentUser, onBack, onQuestionClick, onAskClick }) => {
   const [profile, setProfile] = useState(null);
   const [loadingProfile, setLoadingProfile] = useState(true);
-  const [activeTab, setActiveTab] = useState("pending"); // pending | all-faqs | categories | submissions | approved | rejected | settings | support
+  const [activeTab, setActiveTab] = useState(currentUser?.role === "admin" ? "pending" : "home");
   
   // Sub-view data states
   const [categories, setCategories] = useState([]);
@@ -23,6 +24,12 @@ const MyProfile = ({ currentUser, onBack, onQuestionClick, onAskClick }) => {
   const [tickets, setTickets] = useState([]);
   const [flaggedQueue, setFlaggedQueue] = useState([]);
   const [answeredQueue, setAnsweredQueue] = useState([]);
+  const [popularQuestions, setPopularQuestions] = useState([]);
+  const [newQuestions, setNewQuestions] = useState([]);
+  const [savedQuestions, setSavedQuestions] = useState([]);
+  const [drafts, setDrafts] = useState([]);
+  const [notifications, setNotifications] = useState([]);
+  const [unreadNotificationsCount, setUnreadNotificationsCount] = useState(0);
 
   const [loadingData, setLoadingData] = useState(false);
   const [actionMessage, setActionMessage] = useState("");
@@ -47,17 +54,13 @@ const MyProfile = ({ currentUser, onBack, onQuestionClick, onAskClick }) => {
   useEffect(() => {
     if (currentUser?._id) {
       fetchUserProfile();
+      fetchNotifications();
     }
   }, [currentUser]);
 
   useEffect(() => {
     if (currentUser?._id) {
-      if (isStudent) {
-        fetchStudentQuestions();
-      } else if (isAdmin) {
-        // Load data depending on the active tab
-        loadTabContent();
-      }
+      loadTabContent();
     }
   }, [currentUser, activeTab]);
 
@@ -95,11 +98,101 @@ const MyProfile = ({ currentUser, onBack, onQuestionClick, onAskClick }) => {
     }
   };
 
+  const loadSavedFAQs = () => {
+    const saved = localStorage.getItem(`saved_faqs_${currentUser._id}`);
+    return saved ? JSON.parse(saved) : [];
+  };
+
+  const toggleSaveFAQ = (q) => {
+    const saved = loadSavedFAQs();
+    const isSaved = saved.some(item => item._id === q._id);
+    let updated;
+    if (isSaved) {
+      updated = saved.filter(item => item._id !== q._id);
+    } else {
+      updated = [...saved, q];
+    }
+    localStorage.setItem(`saved_faqs_${currentUser._id}`, JSON.stringify(updated));
+    if (activeTab === "saved-faqs") {
+      setSavedQuestions(updated);
+    }
+    setActionMessage(isSaved ? "FAQ removed from saved list." : "FAQ bookmarked successfully!");
+  };
+
+  const loadDrafts = () => {
+    const saved = localStorage.getItem(`drafts_${currentUser._id}`);
+    return saved ? JSON.parse(saved) : [];
+  };
+
+  const deleteDraft = (draftId) => {
+    const draftsList = loadDrafts();
+    const updated = draftsList.filter(item => item._id !== draftId);
+    localStorage.setItem(`drafts_${currentUser._id}`, JSON.stringify(updated));
+    if (activeTab === "drafts") {
+      setDrafts(updated);
+    }
+    setActionMessage("Draft deleted.");
+  };
+
+  const fetchNotifications = async () => {
+    try {
+      const response = await api.get("/notifications");
+      if (response.data.success) {
+        const list = response.data.data || [];
+        setNotifications(list);
+        setUnreadNotificationsCount(list.filter(n => !n.isRead).length);
+      }
+    } catch (error) {
+      console.error("Error fetching notifications:", error);
+    }
+  };
+
+  const handleNotificationRead = async (id) => {
+    try {
+      const response = await api.patch(`/notifications/${id}/read`);
+      if (response.data.success) {
+        fetchNotifications();
+      }
+    } catch (error) {
+      console.error("Error marking notification as read:", error);
+    }
+  };
+
+  const handleAllNotificationsRead = async () => {
+    try {
+      const response = await api.patch("/notifications/read-all");
+      if (response.data.success) {
+        fetchNotifications();
+        setActionMessage("All notifications marked as read.");
+      }
+    } catch (error) {
+      console.error("Error marking all notifications as read:", error);
+    }
+  };
+
+  const handleNotificationDelete = async (id) => {
+    try {
+      const response = await api.delete(`/notifications/${id}`);
+      if (response.status === 204 || response.data?.success) {
+        fetchNotifications();
+        setActionMessage("Notification deleted.");
+      }
+    } catch (error) {
+      console.error("Error deleting notification:", error);
+    }
+  };
+
   const loadTabContent = async () => {
     setLoadingData(true);
     setActionMessage("");
     try {
-      if (activeTab === "pending") {
+      if (activeTab === "home") {
+        // Load categories and user submissions
+        const catRes = await api.get("/categories");
+        const subRes = await api.get(`/users/${currentUser._id}/questions`);
+        if (catRes.data.success) setCategories(catRes.data.data || []);
+        if (subRes.data.success) setSubmissions(subRes.data.data || []);
+      } else if (activeTab === "pending") {
         // Fetch flagged queue and answered questions queue
         const flaggedRes = await api.get("/moderation/queue");
         const answeredRes = await api.get("/moderation/queue/answered");
@@ -134,6 +227,18 @@ const MyProfile = ({ currentUser, onBack, onQuestionClick, onAskClick }) => {
         // Fetch support tickets
         const response = await api.get("/tickets");
         if (response.data.success) setTickets(response.data.data || []);
+      } else if (activeTab === "popular") {
+        const response = await api.get("/questions?sort=mostViewed");
+        if (response.data.success) setPopularQuestions(response.data.data || []);
+      } else if (activeTab === "whats-new") {
+        const response = await api.get("/questions?sort=newest");
+        if (response.data.success) setNewQuestions(response.data.data || []);
+      } else if (activeTab === "saved-faqs") {
+        setSavedQuestions(loadSavedFAQs());
+      } else if (activeTab === "drafts") {
+        setDrafts(loadDrafts());
+      } else if (activeTab === "notifications") {
+        await fetchNotifications();
       }
     } catch (error) {
       console.error(`Error loading tab content for ${activeTab}:`, error);
@@ -231,191 +336,17 @@ const MyProfile = ({ currentUser, onBack, onQuestionClick, onAskClick }) => {
   // Total pending reviews count for pill badge (Flagged reports + answered questions with pending responses)
   const pendingCount = flaggedQueue.length + answeredQueue.length;
 
-  // Render Student Layout (Default profile card + submissions)
-  if (isStudent) {
-    return (
-      <div className="mx-auto max-w-6xl px-6 py-10 text-white">
-        <button 
-          onClick={onBack}
-          className="mb-8 flex items-center gap-2 text-sm font-semibold text-gray-400 hover:text-white transition-colors group"
-        >
-          <ArrowLeft size={16} className="transition-transform group-hover:-translate-x-1" />
-          Back to Dashboard
-        </button>
+  // Student Layout handled by unified sidebar layout below
 
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-          {/* Left Column Profile info */}
-          <div className="space-y-6">
-            <div className="rounded-2xl border border-white/10 bg-surface-light p-6 shadow-xl relative overflow-hidden">
-              <div className="relative flex flex-col items-center text-center">
-                <div className="flex h-20 w-20 items-center justify-center rounded-full bg-gradient-to-br from-primary-500 to-indigo-600 text-white text-2xl font-bold uppercase mb-4 border-2 border-white/10">
-                  {profile.name?.substring(0, 2) || profile.username?.substring(0, 2) || "U"}
-                </div>
-                <span className="inline-flex items-center gap-1 rounded-full bg-primary-500/10 text-primary-300 border border-primary-500/20 px-3 py-1 text-[10px] font-bold uppercase tracking-wider mb-3">
-                  <GraduationCap size={10} />
-                  Student Contributor
-                </span>
-                <h2 className="text-xl font-bold text-white">{profile.name || profile.username}</h2>
-                <p className="text-xs text-gray-400">@{profile.username}</p>
-                <div className="w-full border-t border-white/5 my-6" />
-                <div className="w-full space-y-3.5 text-left text-xs text-gray-300">
-                  <div className="flex items-center gap-3">
-                    <Mail size={14} className="text-gray-500" />
-                    <span className="truncate">{currentUser?.email}</span>
-                  </div>
-                  <div className="flex items-center gap-3">
-                    <Calendar size={14} className="text-gray-500" />
-                    <span>Joined {new Date(profile.joinedAt).toLocaleDateString()}</span>
-                  </div>
-                  <div className="flex items-center gap-3">
-                    <Award size={14} className="text-gray-500" />
-                    <span>Reputation: <strong className="text-primary-300">{profile.badgeLevel || "Newbie"}</strong></span>
-                  </div>
-                </div>
-              </div>
-            </div>
 
-            {/* Profile Custom Metadata Card */}
-            <div className="rounded-2xl border border-white/10 bg-surface-light p-6 shadow-xl">
-              <h3 className="text-sm font-bold uppercase tracking-wider text-gray-400 mb-4">Profile Details</h3>
-              <div className="space-y-4 text-sm">
-                <div>
-                  <span className="block text-[10px] uppercase font-bold text-gray-500">College / University</span>
-                  <span className="text-white font-medium">{profile.profileMetadata?.college || "Not set"}</span>
-                </div>
-                <div>
-                  <span className="block text-[10px] uppercase font-bold text-gray-500">Branch / Major</span>
-                  <span className="text-white font-medium">{profile.profileMetadata?.major || "Not set"}</span>
-                </div>
-                <div>
-                  <span className="block text-[10px] uppercase font-bold text-gray-500">Current Semester</span>
-                  <span className="text-white font-medium">{profile.profileMetadata?.semester || "Not set"}</span>
-                </div>
-                <div>
-                  <span className="block text-[10px] uppercase font-bold text-gray-500">Areas of Interest</span>
-                  <div className="flex flex-wrap gap-1.5 mt-1.5">
-                    {profile.profileMetadata?.interests ? profile.profileMetadata.interests.split(",").map((interest, idx) => (
-                      <span key={idx} className="rounded bg-surface px-2.5 py-1 text-[10px] font-medium text-gray-300 border border-white/5">
-                        {interest.trim()}
-                      </span>
-                    )) : <span className="text-gray-500 text-xs italic">No interests configured</span>}
-                  </div>
-                </div>
-              </div>
-            </div>
-          </div>
-
-          {/* Right Column Workspace */}
-          <div className="lg:col-span-2 space-y-6">
-            <div className="rounded-2xl border border-white/10 bg-gradient-to-r from-primary-600/20 to-indigo-600/20 p-6 shadow-xl flex flex-col md:flex-row md:items-center justify-between gap-6">
-              <div>
-                <h3 className="text-xl font-bold text-white mb-2">Student Workspace</h3>
-                <p className="text-sm text-gray-300 leading-relaxed max-w-md">
-                  Welcome back, {profile.name || profile.username}! Continue submitting community questions and sharing your advice to build your contributor rating.
-                </p>
-              </div>
-              <div className="bg-surface-light border border-white/10 p-5 rounded-xl flex items-center gap-4 shadow-lg min-w-[200px] shrink-0">
-                <div className="h-12 w-12 rounded-lg bg-primary-500/10 flex items-center justify-center text-primary-400 border border-primary-500/20">
-                  <Award size={24} />
-                </div>
-                <div>
-                  <span className="block text-[10px] uppercase font-bold text-gray-500">Contribution Points</span>
-                  <strong className="text-3xl font-extrabold text-white tracking-tight">{contributionPoints}</strong>
-                </div>
-              </div>
-            </div>
-
-            {/* Metrics */}
-            <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-              <div className="rounded-xl border border-white/5 bg-surface-light p-4 text-center">
-                <span className="text-2xl font-bold text-white">{stats.questionsAsked}</span>
-                <span className="block text-[10px] text-gray-400 font-semibold uppercase mt-1">Asked</span>
-              </div>
-              <div className="rounded-xl border border-white/5 bg-surface-light p-4 text-center">
-                <span className="text-2xl font-bold text-white">{stats.answersGiven}</span>
-                <span className="block text-[10px] text-gray-400 font-semibold uppercase mt-1">Answered</span>
-              </div>
-              <div className="rounded-xl border border-white/5 bg-surface-light p-4 text-center">
-                <span className="text-2xl font-bold text-primary-400">{stats.bestAnswers}</span>
-                <span className="block text-[10px] text-gray-400 font-semibold uppercase mt-1">Best Chosen</span>
-              </div>
-              <div className="rounded-xl border border-white/5 bg-surface-light p-4 text-center">
-                <span className="text-2xl font-bold text-indigo-400">{stats.upvotesReceived}</span>
-                <span className="block text-[10px] text-gray-400 font-semibold uppercase mt-1">Upvotes</span>
-              </div>
-            </div>
-
-            {/* Questions list */}
-            <div className="rounded-2xl border border-white/10 bg-surface-light p-6 shadow-xl">
-              <div className="flex items-center justify-between mb-6">
-                <h3 className="text-lg font-bold text-white flex items-center gap-2">
-                  <HelpCircle size={18} className="text-primary-400" />
-                  My Submitted Questions
-                </h3>
-                <button 
-                  onClick={onAskClick}
-                  className="flex items-center gap-1 rounded bg-primary-500 hover:bg-primary-600 px-3 py-1.5 text-xs font-semibold text-white transition-colors"
-                >
-                  <PlusCircle size={14} />
-                  New Question
-                </button>
-              </div>
-
-              {loadingData ? (
-                <div className="flex flex-col items-center py-10">
-                  <Loader2 className="h-6 w-6 animate-spin text-primary-500" />
-                  <p className="mt-3 text-xs text-gray-500">Loading submissions...</p>
-                </div>
-              ) : submissions.length === 0 ? (
-                <div className="rounded-xl border border-dashed border-white/10 bg-surface/30 p-8 text-center">
-                  <p className="text-gray-400 text-sm">You haven't submitted any questions yet.</p>
-                </div>
-              ) : (
-                <div className="space-y-3">
-                  {submissions.map((q) => (
-                    <div 
-                      key={q._id}
-                      onClick={() => onQuestionClick(q)}
-                      className="rounded-xl border border-white/5 bg-surface p-4 hover:border-white/10 hover:bg-surface-lighter cursor-pointer transition-all duration-200 flex flex-col sm:flex-row sm:items-center justify-between gap-4"
-                    >
-                      <div className="min-w-0 flex-1">
-                        <h4 className="text-sm font-bold text-white hover:text-primary-300 truncate mb-1">
-                          {q.title}
-                        </h4>
-                        <div className="flex items-center gap-2 text-[10px] text-gray-500">
-                          <span>Category: {q.category?.name || "Uncategorized"}</span>
-                          <span>•</span>
-                          <span>{new Date(q.createdAt).toLocaleDateString()}</span>
-                        </div>
-                      </div>
-                      <div className="shrink-0">
-                        <span className={`inline-flex rounded-full px-2.5 py-0.5 text-[9px] font-bold uppercase ${
-                          q.status === 'resolved' 
-                            ? 'bg-emerald-500/10 text-emerald-400 border border-emerald-500/20' 
-                            : 'bg-amber-500/10 text-amber-400 border border-amber-500/20'
-                        }`}>
-                          {q.status}
-                        </span>
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              )}
-            </div>
-          </div>
-        </div>
-      </div>
-    );
-  }
-
-  // Render Admin Layout with Sidebar
+  // Render Sidebar Layout for Admin / Student
   return (
     <div className="flex bg-surface min-h-[calc(100vh-73px)] text-white">
       
       {/* ---------------------------------------------------- */}
       {/* LEFT SIDEBAR NAVIGATION PANEL                        */}
       {/* ---------------------------------------------------- */}
-      <aside className="w-64 shrink-0 border-r border-white/10 bg-surface-dark flex flex-col justify-between p-5 select-none">
+      <aside className="w-64 shrink-0 border-r border-white/10 bg-surface-dark flex flex-col justify-between p-5 select-none font-sans">
         <div className="space-y-7">
           
           {/* Logo / Brand Header */}
@@ -428,139 +359,317 @@ const MyProfile = ({ currentUser, onBack, onQuestionClick, onAskClick }) => {
             </span>
           </div>
 
-          {/* Standard Navigation Options */}
-          <nav className="space-y-1">
-            <button
-              onClick={onBack}
-              className="flex items-center gap-3 w-full rounded-lg px-3.5 py-2.5 text-sm font-semibold text-gray-300 hover:text-white hover:bg-white/5 transition-all duration-200"
-            >
-              <HomeIcon size={18} className="text-gray-400" />
-              Home
-            </button>
-            
-            <button
-              onClick={() => setActiveTab("all-faqs")}
-              className={`flex items-center gap-3 w-full rounded-lg px-3.5 py-2.5 text-sm font-semibold transition-all duration-200 ${
-                activeTab === "all-faqs"
-                  ? "bg-blue-950/40 text-blue-400 border-l-2 border-primary-500"
-                  : "text-gray-300 hover:text-white hover:bg-white/5"
-              }`}
-            >
-              <MessageSquare size={18} className={activeTab === "all-faqs" ? "text-blue-400" : "text-gray-400"} />
-              All FAQs
-            </button>
+          {/* ADMIN SIDEBAR */}
+          {isAdmin && (
+            <div className="space-y-6">
+              <nav className="space-y-1">
+                <button
+                  onClick={onBack}
+                  className="flex items-center gap-3 w-full rounded-lg px-3.5 py-2.5 text-sm font-semibold text-gray-300 hover:text-white hover:bg-white/5 transition-all duration-200"
+                >
+                  <HomeIcon size={18} className="text-gray-400" />
+                  Home
+                </button>
+                
+                <button
+                  onClick={() => setActiveTab("all-faqs")}
+                  className={`flex items-center gap-3 w-full rounded-lg px-3.5 py-2.5 text-sm font-semibold transition-all duration-200 ${
+                    activeTab === "all-faqs"
+                      ? "bg-blue-950/40 text-blue-400 border-l-2 border-primary-500"
+                      : "text-gray-300 hover:text-white hover:bg-white/5"
+                  }`}
+                >
+                  <MessageSquare size={18} className={activeTab === "all-faqs" ? "text-blue-400" : "text-gray-400"} />
+                  All FAQs
+                </button>
 
-            <button
-              onClick={() => setActiveTab("categories")}
-              className={`flex items-center gap-3 w-full rounded-lg px-3.5 py-2.5 text-sm font-semibold transition-all duration-200 ${
-                activeTab === "categories"
-                  ? "bg-blue-950/40 text-blue-400 border-l-2 border-primary-500"
-                  : "text-gray-300 hover:text-white hover:bg-white/5"
-              }`}
-            >
-              <Folder size={18} className={activeTab === "categories" ? "text-blue-400" : "text-gray-400"} />
-              Categories
-            </button>
+                <button
+                  onClick={() => setActiveTab("categories")}
+                  className={`flex items-center gap-3 w-full rounded-lg px-3.5 py-2.5 text-sm font-semibold transition-all duration-200 ${
+                    activeTab === "categories"
+                      ? "bg-blue-950/40 text-blue-400 border-l-2 border-primary-500"
+                      : "text-gray-300 hover:text-white hover:bg-white/5"
+                  }`}
+                >
+                  <Folder size={18} className={activeTab === "categories" ? "text-blue-400" : "text-gray-400"} />
+                  Categories
+                </button>
 
-            <button
-              onClick={onAskClick}
-              className="flex items-center gap-3 w-full rounded-lg px-3.5 py-2.5 text-sm font-semibold text-gray-300 hover:text-white hover:bg-white/5 transition-all duration-200"
-            >
-              <PlusCircle size={18} className="text-gray-400" />
-              Submit FAQ
-            </button>
+                <button
+                  onClick={onAskClick}
+                  className="flex items-center gap-3 w-full rounded-lg px-3.5 py-2.5 text-sm font-semibold text-gray-300 hover:text-white hover:bg-white/5 transition-all duration-200"
+                >
+                  <PlusCircle size={18} className="text-gray-400" />
+                  Submit FAQ
+                </button>
 
-            <button
-              onClick={() => setActiveTab("submissions")}
-              className={`flex items-center gap-3 w-full rounded-lg px-3.5 py-2.5 text-sm font-semibold transition-all duration-200 ${
-                activeTab === "submissions"
-                  ? "bg-blue-950/40 text-blue-400 border-l-2 border-primary-500"
-                  : "text-gray-300 hover:text-white hover:bg-white/5"
-              }`}
-            >
-              <FileText size={18} className={activeTab === "submissions" ? "text-blue-400" : "text-gray-400"} />
-              My Submissions
-            </button>
-          </nav>
+                <button
+                  onClick={() => setActiveTab("submissions")}
+                  className={`flex items-center gap-3 w-full rounded-lg px-3.5 py-2.5 text-sm font-semibold transition-all duration-200 ${
+                    activeTab === "submissions"
+                      ? "bg-blue-950/40 text-blue-400 border-l-2 border-primary-500"
+                      : "text-gray-300 hover:text-white hover:bg-white/5"
+                  }`}
+                >
+                  <FileText size={18} className={activeTab === "submissions" ? "text-blue-400" : "text-gray-400"} />
+                  My Submissions
+                </button>
+              </nav>
 
-          <div className="border-t border-white/5 my-4" />
+              <div className="border-t border-white/5 my-4" />
 
-          {/* ADMIN / REVIEWER section */}
-          <div className="space-y-1">
-            <span className="block text-[10px] font-bold uppercase tracking-wider text-gray-500 px-3.5 mb-2">
-              Admin / Reviewer
-            </span>
-
-            <button
-              onClick={() => setActiveTab("pending")}
-              className={`flex items-center gap-3 w-full rounded-lg px-3.5 py-2.5 text-sm font-semibold transition-all duration-200 ${
-                activeTab === "pending"
-                  ? "bg-blue-950/40 text-blue-400 border-l-2 border-primary-500"
-                  : "text-gray-300 hover:text-white hover:bg-white/5"
-              }`}
-            >
-              <Clock size={18} className={activeTab === "pending" ? "text-blue-400" : "text-gray-400"} />
-              Pending Reviews
-              {pendingCount > 0 && (
-                <span className="ml-auto bg-blue-900/60 text-blue-300 text-[10px] font-bold px-2 py-0.5 rounded-full border border-blue-500/20">
-                  {pendingCount}
+              <div className="space-y-1">
+                <span className="block text-[10px] font-bold uppercase tracking-wider text-gray-500 px-3.5 mb-2">
+                  Admin / Reviewer
                 </span>
-              )}
-            </button>
 
-            <button
-              onClick={() => setActiveTab("approved")}
-              className={`flex items-center gap-3 w-full rounded-lg px-3.5 py-2.5 text-sm font-semibold transition-all duration-200 ${
-                activeTab === "approved"
-                  ? "bg-blue-950/40 text-blue-400 border-l-2 border-primary-500"
-                  : "text-gray-300 hover:text-white hover:bg-white/5"
-              }`}
-            >
-              <CheckCircle size={18} className={activeTab === "approved" ? "text-blue-400" : "text-gray-400"} />
-              Approved FAQs
-            </button>
+                <button
+                  onClick={() => setActiveTab("pending")}
+                  className={`flex items-center gap-3 w-full rounded-lg px-3.5 py-2.5 text-sm font-semibold transition-all duration-200 ${
+                    activeTab === "pending"
+                      ? "bg-blue-950/40 text-blue-400 border-l-2 border-primary-500"
+                      : "text-gray-300 hover:text-white hover:bg-white/5"
+                  }`}
+                >
+                  <Clock size={18} className={activeTab === "pending" ? "text-blue-400" : "text-gray-400"} />
+                  Pending Reviews
+                  {pendingCount > 0 && (
+                    <span className="ml-auto bg-blue-900/60 text-blue-300 text-[10px] font-bold px-2 py-0.5 rounded-full border border-blue-500/20">
+                      {pendingCount}
+                    </span>
+                  )}
+                </button>
 
-            <button
-              onClick={() => setActiveTab("rejected")}
-              className={`flex items-center gap-3 w-full rounded-lg px-3.5 py-2.5 text-sm font-semibold transition-all duration-200 ${
-                activeTab === "rejected"
-                  ? "bg-blue-950/40 text-blue-400 border-l-2 border-primary-500"
-                  : "text-gray-300 hover:text-white hover:bg-white/5"
-              }`}
-            >
-              <XCircle size={18} className={activeTab === "rejected" ? "text-blue-400" : "text-gray-400"} />
-              Rejected FAQs
-            </button>
-          </div>
+                <button
+                  onClick={() => setActiveTab("approved")}
+                  className={`flex items-center gap-3 w-full rounded-lg px-3.5 py-2.5 text-sm font-semibold transition-all duration-200 ${
+                    activeTab === "approved"
+                      ? "bg-blue-950/40 text-blue-400 border-l-2 border-primary-500"
+                      : "text-gray-300 hover:text-white hover:bg-white/5"
+                  }`}
+                >
+                  <CheckCircle size={18} className={activeTab === "approved" ? "text-blue-400" : "text-gray-400"} />
+                  Approved FAQs
+                </button>
+
+                <button
+                  onClick={() => setActiveTab("rejected")}
+                  className={`flex items-center gap-3 w-full rounded-lg px-3.5 py-2.5 text-sm font-semibold transition-all duration-200 ${
+                    activeTab === "rejected"
+                      ? "bg-blue-950/40 text-blue-400 border-l-2 border-primary-500"
+                      : "text-gray-300 hover:text-white hover:bg-white/5"
+                  }`}
+                >
+                  <XCircle size={18} className={activeTab === "rejected" ? "text-blue-400" : "text-gray-400"} />
+                  Rejected FAQs
+                </button>
+              </div>
+            </div>
+          )}
+
+          {/* STUDENT SIDEBAR (as in user dashboard mockup image) */}
+          {isStudent && (
+            <div className="space-y-5">
+              
+              {/* Group: MAIN */}
+              <div className="space-y-1">
+                <span className="block text-[10px] font-bold uppercase tracking-wider text-gray-500 px-3.5 mb-1.5">
+                  Main
+                </span>
+                
+                <button
+                  onClick={() => setActiveTab("home")}
+                  className={`flex items-center gap-3 w-full rounded-lg px-3.5 py-2.5 text-sm font-semibold transition-all duration-200 ${
+                    activeTab === "home"
+                      ? "bg-blue-950/40 text-blue-400 border-l-2 border-primary-500"
+                      : "text-gray-300 hover:text-white hover:bg-white/5"
+                  }`}
+                >
+                  <HomeIcon size={16} className={activeTab === "home" ? "text-blue-400" : "text-gray-400"} />
+                  Home
+                </button>
+
+                <button
+                  onClick={() => setActiveTab("all-faqs")}
+                  className={`flex items-center gap-3 w-full rounded-lg px-3.5 py-2.5 text-sm font-semibold transition-all duration-200 ${
+                    activeTab === "all-faqs"
+                      ? "bg-blue-950/40 text-blue-400 border-l-2 border-primary-500"
+                      : "text-gray-300 hover:text-white hover:bg-white/5"
+                  }`}
+                >
+                  <MessageSquare size={16} className={activeTab === "all-faqs" ? "text-blue-400" : "text-gray-400"} />
+                  All FAQs
+                </button>
+
+                <button
+                  onClick={() => setActiveTab("categories")}
+                  className={`flex items-center gap-3 w-full rounded-lg px-3.5 py-2.5 text-sm font-semibold transition-all duration-200 ${
+                    activeTab === "categories"
+                      ? "bg-blue-950/40 text-blue-400 border-l-2 border-primary-500"
+                      : "text-gray-300 hover:text-white hover:bg-white/5"
+                  }`}
+                >
+                  <Folder size={16} className={activeTab === "categories" ? "text-blue-400" : "text-gray-400"} />
+                  Categories
+                </button>
+
+                <button
+                  onClick={() => setActiveTab("popular")}
+                  className={`flex items-center gap-3 w-full rounded-lg px-3.5 py-2.5 text-sm font-semibold transition-all duration-200 ${
+                    activeTab === "popular"
+                      ? "bg-blue-950/40 text-blue-400 border-l-2 border-primary-500"
+                      : "text-gray-300 hover:text-white hover:bg-white/5"
+                  }`}
+                >
+                  <Flame size={16} className={activeTab === "popular" ? "text-blue-400" : "text-gray-400"} />
+                  Popular
+                </button>
+
+                <button
+                  onClick={() => setActiveTab("whats-new")}
+                  className={`flex items-center gap-3 w-full rounded-lg px-3.5 py-2.5 text-sm font-semibold transition-all duration-200 ${
+                    activeTab === "whats-new"
+                      ? "bg-blue-950/40 text-blue-400 border-l-2 border-primary-500"
+                      : "text-gray-300 hover:text-white hover:bg-white/5"
+                  }`}
+                >
+                  <Sun size={16} className={activeTab === "whats-new" ? "text-blue-400" : "text-gray-400"} />
+                  What's New
+                </button>
+
+                <button
+                  onClick={() => setActiveTab("saved-faqs")}
+                  className={`flex items-center gap-3 w-full rounded-lg px-3.5 py-2.5 text-sm font-semibold transition-all duration-200 ${
+                    activeTab === "saved-faqs"
+                      ? "bg-blue-950/40 text-blue-400 border-l-2 border-primary-500"
+                      : "text-gray-300 hover:text-white hover:bg-white/5"
+                  }`}
+                >
+                  <Bookmark size={16} className={activeTab === "saved-faqs" ? "text-blue-400" : "text-gray-400"} />
+                  Saved FAQs
+                </button>
+              </div>
+
+              {/* Group: CONTRIBUTE */}
+              <div className="space-y-1">
+                <span className="block text-[10px] font-bold uppercase tracking-wider text-gray-500 px-3.5 mb-1.5">
+                  Contribute
+                </span>
+                
+                <button
+                  onClick={() => onAskClick()}
+                  className="flex items-center gap-3 w-full rounded-lg px-3.5 py-2.5 text-sm font-semibold text-gray-300 hover:text-white hover:bg-white/5 transition-all duration-200"
+                >
+                  <PlusCircle size={16} className="text-gray-400" />
+                  Submit FAQ
+                </button>
+
+                <button
+                  onClick={() => setActiveTab("submissions")}
+                  className={`flex items-center gap-3 w-full rounded-lg px-3.5 py-2.5 text-sm font-semibold transition-all duration-200 ${
+                    activeTab === "submissions"
+                      ? "bg-blue-950/40 text-blue-400 border-l-2 border-primary-500"
+                      : "text-gray-300 hover:text-white hover:bg-white/5"
+                  }`}
+                >
+                  <FileText size={16} className={activeTab === "submissions" ? "text-blue-400" : "text-gray-400"} />
+                  My Submissions
+                </button>
+
+                <button
+                  onClick={() => setActiveTab("drafts")}
+                  className={`flex items-center gap-3 w-full rounded-lg px-3.5 py-2.5 text-sm font-semibold transition-all duration-200 ${
+                    activeTab === "drafts"
+                      ? "bg-blue-950/40 text-blue-400 border-l-2 border-primary-500"
+                      : "text-gray-300 hover:text-white hover:bg-white/5"
+                  }`}
+                >
+                  <Edit3 size={16} className={activeTab === "drafts" ? "text-blue-400" : "text-gray-400"} />
+                  Drafts
+                </button>
+              </div>
+
+              {/* Group: COMMUNITY */}
+              <div className="space-y-1">
+                <span className="block text-[10px] font-bold uppercase tracking-wider text-gray-500 px-3.5 mb-1.5">
+                  Community
+                </span>
+
+                <button
+                  onClick={() => setActiveTab("settings")}
+                  className={`flex items-center gap-3 w-full rounded-lg px-3.5 py-2.5 text-sm font-semibold transition-all duration-200 ${
+                    activeTab === "settings"
+                      ? "bg-blue-950/40 text-blue-400 border-l-2 border-primary-500"
+                      : "text-gray-300 hover:text-white hover:bg-white/5"
+                  }`}
+                >
+                  <UserIcon size={16} className={activeTab === "settings" ? "text-blue-400" : "text-gray-400"} />
+                  My Profile
+                </button>
+
+                <button
+                  onClick={() => setActiveTab("notifications")}
+                  className={`flex items-center gap-3 w-full rounded-lg px-3.5 py-2.5 text-sm font-semibold transition-all duration-200 ${
+                    activeTab === "notifications"
+                      ? "bg-blue-950/40 text-blue-400 border-l-2 border-primary-500"
+                      : "text-gray-300 hover:text-white hover:bg-white/5"
+                  }`}
+                >
+                  <Bell size={16} className={activeTab === "notifications" ? "text-blue-400" : "text-gray-400"} />
+                  Notifications
+                  {unreadNotificationsCount > 0 && (
+                    <span className="ml-auto bg-blue-900/60 text-blue-300 text-[10px] font-bold px-2 py-0.5 rounded-full border border-blue-500/20">
+                      {unreadNotificationsCount}
+                    </span>
+                  )}
+                </button>
+
+                <button
+                  onClick={() => setActiveTab("support")}
+                  className={`flex items-center gap-3 w-full rounded-lg px-3.5 py-2.5 text-sm font-semibold transition-all duration-200 ${
+                    activeTab === "support"
+                      ? "bg-blue-950/40 text-blue-400 border-l-2 border-primary-500"
+                      : "text-gray-300 hover:text-white hover:bg-white/5"
+                  }`}
+                >
+                  <Headphones size={16} className={activeTab === "support" ? "text-blue-400" : "text-gray-400"} />
+                  Help & Support
+                </button>
+              </div>
+            </div>
+          )}
+
         </div>
 
         {/* Bottom Panel Actions & User Profile Block */}
         <div className="space-y-4">
-          <nav className="space-y-1">
-            <button
-              onClick={() => setActiveTab("settings")}
-              className={`flex items-center gap-3 w-full rounded-lg px-3.5 py-2.5 text-sm font-semibold transition-all duration-200 ${
-                activeTab === "settings"
-                  ? "bg-blue-950/40 text-blue-400 border-l-2 border-primary-500"
-                  : "text-gray-300 hover:text-white hover:bg-white/5"
-              }`}
-            >
-              <Settings size={18} className={activeTab === "settings" ? "text-blue-400" : "text-gray-400"} />
-              Settings
-            </button>
+          {isAdmin && (
+            <nav className="space-y-1">
+              <button
+                onClick={() => setActiveTab("settings")}
+                className={`flex items-center gap-3 w-full rounded-lg px-3.5 py-2.5 text-sm font-semibold transition-all duration-200 ${
+                  activeTab === "settings"
+                    ? "bg-blue-950/40 text-blue-400 border-l-2 border-primary-500"
+                    : "text-gray-300 hover:text-white hover:bg-white/5"
+                }`}
+              >
+                <Settings size={18} className={activeTab === "settings" ? "text-blue-400" : "text-gray-400"} />
+                Settings
+              </button>
 
-            <button
-              onClick={() => setActiveTab("support")}
-              className={`flex items-center gap-3 w-full rounded-lg px-3.5 py-2.5 text-sm font-semibold transition-all duration-200 ${
-                activeTab === "support"
-                  ? "bg-blue-950/40 text-blue-400 border-l-2 border-primary-500"
-                  : "text-gray-300 hover:text-white hover:bg-white/5"
-              }`}
-            >
-              <Headphones size={18} className={activeTab === "support" ? "text-blue-400" : "text-gray-400"} />
-              Help & Support
-            </button>
-          </nav>
+              <button
+                onClick={() => setActiveTab("support")}
+                className={`flex items-center gap-3 w-full rounded-lg px-3.5 py-2.5 text-sm font-semibold transition-all duration-200 ${
+                  activeTab === "support"
+                    ? "bg-blue-950/40 text-blue-400 border-l-2 border-primary-500"
+                    : "text-gray-300 hover:text-white hover:bg-white/5"
+                }`}
+              >
+                <Headphones size={18} className={activeTab === "support" ? "text-blue-400" : "text-gray-400"} />
+                Help & Support
+              </button>
+            </nav>
+          )}
 
           {/* User profile details block */}
           <div 
@@ -568,11 +677,11 @@ const MyProfile = ({ currentUser, onBack, onQuestionClick, onAskClick }) => {
             className="flex items-center gap-3 p-2.5 rounded-xl border border-white/5 bg-surface hover:bg-surface-light cursor-pointer transition-colors"
           >
             <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-primary-500/15 text-primary-400 border border-primary-500/20 text-xs font-bold uppercase">
-              {profile.name?.substring(0, 2) || profile.username?.substring(0, 2) || "AD"}
+              {profile?.name?.substring(0, 2) || profile?.username?.substring(0, 2) || "JD"}
             </div>
             <div className="min-w-0 flex-1">
-              <p className="text-xs font-bold text-white truncate">{profile.name || profile.username}</p>
-              <p className="text-[10px] text-gray-500 truncate">Reviewer</p>
+              <p className="text-xs font-bold text-white truncate">{profile?.name || profile?.username}</p>
+              <p className="text-[10px] text-gray-500 truncate">{currentUser?.role === 'admin' ? 'Reviewer' : 'Student'}</p>
             </div>
             <ChevronDown size={14} className="text-gray-500" />
           </div>
@@ -606,6 +715,393 @@ const MyProfile = ({ currentUser, onBack, onQuestionClick, onAskClick }) => {
           </div>
         ) : (
           <>
+            {/* STUDENT WORKSPACE DASHBOARD */}
+            {activeTab === "home" && (
+              <div className="space-y-8">
+                {/* Banner Card */}
+                <div className="rounded-2xl border border-white/10 bg-gradient-to-r from-primary-600/20 to-indigo-600/20 p-6 shadow-xl flex flex-col md:flex-row md:items-center justify-between gap-6">
+                  <div>
+                    <h3 className="text-xl font-bold text-white mb-2">Student Workspace</h3>
+                    <p className="text-sm text-gray-300 leading-relaxed max-w-md font-sans">
+                      Welcome back, {profile?.name || profile?.username}! Pitch in with answers, ask questions, and build your contributor reputation.
+                    </p>
+                  </div>
+                  <div className="bg-surface-light border border-white/10 p-5 rounded-xl flex items-center gap-4 shadow-lg min-w-[200px] shrink-0">
+                    <div className="h-12 w-12 rounded-lg bg-primary-500/10 flex items-center justify-center text-primary-400 border border-primary-500/20">
+                      <Award size={24} />
+                    </div>
+                    <div>
+                      <span className="block text-[10px] uppercase font-bold text-gray-500">Contribution Points</span>
+                      <strong className="text-3xl font-extrabold text-white tracking-tight">{contributionPoints}</strong>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Grid Layout: Left Details, Right Recent Questions */}
+                <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+                  <div className="space-y-6">
+                    {/* Contributor Card */}
+                    <div className="rounded-2xl border border-white/10 bg-surface-light p-6 shadow-xl relative overflow-hidden">
+                      <div className="relative flex flex-col items-center text-center">
+                        <div className="flex h-16 w-16 items-center justify-center rounded-full bg-gradient-to-br from-primary-500 to-indigo-600 text-white text-xl font-bold uppercase mb-4 border-2 border-white/10">
+                          {profile?.name?.substring(0, 2) || profile?.username?.substring(0, 2) || "U"}
+                        </div>
+                        <span className="inline-flex items-center gap-1 rounded-full bg-primary-500/10 text-primary-300 border border-primary-500/20 px-2.5 py-0.5 text-[9px] font-bold uppercase tracking-wider mb-3">
+                          <GraduationCap size={10} />
+                          Student Contributor
+                        </span>
+                        <h2 className="text-lg font-bold text-white">{profile?.name || profile?.username}</h2>
+                        <p className="text-xs text-gray-400">@{profile?.username}</p>
+                        <div className="w-full border-t border-white/5 my-4.5" />
+                        <div className="w-full space-y-3 text-left text-xs text-gray-300">
+                          <div className="flex items-center gap-3">
+                            <Mail size={14} className="text-gray-500" />
+                            <span className="truncate">{currentUser?.email}</span>
+                          </div>
+                          <div className="flex items-center gap-3">
+                            <Calendar size={14} className="text-gray-500" />
+                            <span>Joined {profile?.joinedAt ? new Date(profile.joinedAt).toLocaleDateString() : ""}</span>
+                          </div>
+                          <div className="flex items-center gap-3">
+                            <Award size={14} className="text-gray-500" />
+                            <span>Reputation: <strong className="text-primary-300">{profile?.badgeLevel || "Newbie"}</strong></span>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+
+                    {/* Profile Custom Metadata Card */}
+                    <div className="rounded-2xl border border-white/10 bg-surface-light p-6 shadow-xl">
+                      <h3 className="text-xs font-bold uppercase tracking-wider text-gray-400 mb-4">Profile Details</h3>
+                      <div className="space-y-4 text-xs font-sans">
+                        <div>
+                          <span className="block text-[9px] uppercase font-bold text-gray-500">College / University</span>
+                          <span className="text-white font-medium">{profile?.profileMetadata?.college || "Not set"}</span>
+                        </div>
+                        <div>
+                          <span className="block text-[9px] uppercase font-bold text-gray-500">Branch / Major</span>
+                          <span className="text-white font-medium">{profile?.profileMetadata?.major || "Not set"}</span>
+                        </div>
+                        <div>
+                          <span className="block text-[9px] uppercase font-bold text-gray-500">Current Semester</span>
+                          <span className="text-white font-medium">{profile?.profileMetadata?.semester || "Not set"}</span>
+                        </div>
+                        <div>
+                          <span className="block text-[9px] uppercase font-bold text-gray-500">Areas of Interest</span>
+                          <div className="flex flex-wrap gap-1 mt-2">
+                            {profile?.profileMetadata?.interests ? profile.profileMetadata.interests.split(",").map((interest, idx) => (
+                              <span key={idx} className="rounded bg-surface px-2 py-0.5 text-[9px] font-medium text-gray-300 border border-white/5">
+                                {interest.trim()}
+                              </span>
+                            )) : <span className="text-gray-500 text-[10px] italic">No interests configured</span>}
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Right Column Workspace Metrics & Submissions */}
+                  <div className="lg:col-span-2 space-y-6">
+                    {/* Metrics Grid */}
+                    <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+                      <div className="rounded-xl border border-white/5 bg-surface-light p-4 text-center">
+                        <span className="text-xl font-bold text-white">{stats.questionsAsked}</span>
+                        <span className="block text-[9px] text-gray-400 font-semibold uppercase mt-1">Asked</span>
+                      </div>
+                      <div className="rounded-xl border border-white/5 bg-surface-light p-4 text-center">
+                        <span className="text-xl font-bold text-white">{stats.answersGiven}</span>
+                        <span className="block text-[9px] text-gray-400 font-semibold uppercase mt-1">Answered</span>
+                      </div>
+                      <div className="rounded-xl border border-white/5 bg-surface-light p-4 text-center">
+                        <span className="text-xl font-bold text-primary-400">{stats.bestAnswers}</span>
+                        <span className="block text-[9px] text-gray-400 font-semibold uppercase mt-1">Best Chosen</span>
+                      </div>
+                      <div className="rounded-xl border border-white/5 bg-surface-light p-4 text-center">
+                        <span className="text-xl font-bold text-indigo-400">{stats.upvotesReceived}</span>
+                        <span className="block text-[9px] text-gray-400 font-semibold uppercase mt-1">Upvotes</span>
+                      </div>
+                    </div>
+
+                    {/* Submissions Section */}
+                    <div className="rounded-2xl border border-white/10 bg-surface-light p-6 shadow-xl">
+                      <div className="flex items-center justify-between mb-4">
+                        <h3 className="text-sm font-bold uppercase tracking-wider text-gray-400 flex items-center gap-2">
+                          <FileText size={16} className="text-primary-400" />
+                          Recent Submissions ({submissions.slice(0, 5).length})
+                        </h3>
+                        <button 
+                          onClick={() => setActiveTab("submissions")}
+                          className="text-[10px] font-bold text-primary-400 hover:underline uppercase"
+                        >
+                          View All
+                        </button>
+                      </div>
+
+                      {submissions.length === 0 ? (
+                        <div className="rounded-xl border border-dashed border-white/10 bg-surface/30 p-8 text-center text-xs text-gray-500">
+                          You haven't submitted any questions yet.
+                        </div>
+                      ) : (
+                        <div className="space-y-2.5">
+                          {submissions.slice(0, 5).map((q) => (
+                            <div 
+                              key={q._id}
+                              onClick={() => onQuestionClick(q)}
+                              className="rounded-xl border border-white/5 bg-surface p-3.5 hover:border-white/10 hover:bg-surface-lighter cursor-pointer transition-all duration-200 flex items-center justify-between gap-4"
+                            >
+                              <div className="min-w-0 flex-1">
+                                <h4 className="text-xs font-bold text-white hover:text-primary-300 truncate mb-1">{q.title}</h4>
+                                <p className="text-[9px] text-gray-500">Category: {q.category?.name} • Asked on {new Date(q.createdAt).toLocaleDateString()}</p>
+                              </div>
+                              <ChevronRight size={14} className="text-gray-500 shrink-0" />
+                            </div>
+                          ))}
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                </div>
+              </div>
+            )}
+
+            {/* POPULAR SUB-VIEW */}
+            {activeTab === "popular" && (
+              <div className="space-y-6">
+                <div>
+                  <h2 className="text-xl font-bold text-white mb-2">Popular FAQs & Questions</h2>
+                  <p className="text-xs text-gray-500">Browse highly viewed questions and deflection logs across the campus community.</p>
+                </div>
+
+                <div className="rounded-2xl border border-white/10 bg-surface-light p-6 shadow-xl">
+                  {popularQuestions.length === 0 ? (
+                    <div className="rounded-xl border border-dashed border-white/10 bg-surface/30 p-12 text-center text-gray-500 font-sans">
+                      No popular questions loaded.
+                    </div>
+                  ) : (
+                    <div className="space-y-3">
+                      {popularQuestions.map((q) => (
+                        <div 
+                          key={q._id}
+                          onClick={() => onQuestionClick(q)}
+                          className="rounded-xl border border-white/5 bg-surface p-4 hover:border-white/10 hover:bg-surface-lighter cursor-pointer transition-all duration-200 flex items-center justify-between gap-4"
+                        >
+                          <div className="min-w-0 flex-1">
+                            <h4 className="text-sm font-bold text-white hover:text-primary-300 truncate mb-1">{q.title}</h4>
+                            <p className="text-[10px] text-gray-500 font-sans">Category: {q.category?.name} • Views: {q.views || 0} • {new Date(q.createdAt).toLocaleDateString()}</p>
+                          </div>
+                          <div className="flex items-center gap-3 shrink-0">
+                            <span className="inline-flex items-center gap-1 rounded bg-amber-500/10 text-amber-400 border border-amber-500/20 px-2 py-0.5 text-[9px] font-bold">
+                              🔥 Popular
+                            </span>
+                            <ChevronRight size={16} className="text-gray-500" />
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </div>
+              </div>
+            )}
+
+            {/* WHATS NEW SUB-VIEW */}
+            {activeTab === "whats-new" && (
+              <div className="space-y-6">
+                <div>
+                  <h2 className="text-xl font-bold text-white mb-2">Recently Posted Questions</h2>
+                  <p className="text-xs text-gray-500">See what users are currently asking in real-time.</p>
+                </div>
+
+                <div className="rounded-2xl border border-white/10 bg-surface-light p-6 shadow-xl">
+                  {newQuestions.length === 0 ? (
+                    <div className="rounded-xl border border-dashed border-white/10 bg-surface/30 p-12 text-center text-gray-500 font-sans">
+                      No recent questions found.
+                    </div>
+                  ) : (
+                    <div className="space-y-3">
+                      {newQuestions.map((q) => (
+                        <div 
+                          key={q._id}
+                          onClick={() => onQuestionClick(q)}
+                          className="rounded-xl border border-white/5 bg-surface p-4 hover:border-white/10 hover:bg-surface-lighter cursor-pointer transition-all duration-200 flex items-center justify-between gap-4"
+                        >
+                          <div className="min-w-0 flex-1">
+                            <h4 className="text-sm font-bold text-white hover:text-primary-300 truncate mb-1">{q.title}</h4>
+                            <p className="text-[10px] text-gray-500 font-sans">Category: {q.category?.name} • Asked by: {q.author?.name || q.author?.username} • {new Date(q.createdAt).toLocaleDateString()}</p>
+                          </div>
+                          <ChevronRight size={16} className="text-gray-500 shrink-0" />
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </div>
+              </div>
+            )}
+
+            {/* SAVED FAQS SUB-VIEW */}
+            {activeTab === "saved-faqs" && (
+              <div className="space-y-6">
+                <div>
+                  <h2 className="text-xl font-bold text-white mb-2">My Saved FAQs</h2>
+                  <p className="text-xs text-gray-500">Access your bookmarked questions and guidelines offline instantly.</p>
+                </div>
+
+                <div className="rounded-2xl border border-white/10 bg-surface-light p-6 shadow-xl">
+                  {savedQuestions.length === 0 ? (
+                    <div className="rounded-xl border border-dashed border-white/10 bg-surface/30 p-12 text-center text-xs text-gray-500 font-sans leading-relaxed">
+                      No bookmarks saved yet. Click the bookmark option on any question to keep it here.
+                    </div>
+                  ) : (
+                    <div className="space-y-3">
+                      {savedQuestions.map((q) => (
+                        <div 
+                          key={q._id}
+                          className="rounded-xl border border-white/5 bg-surface p-4 hover:border-white/10 transition-all duration-200 flex items-center justify-between gap-4"
+                        >
+                          <div 
+                            onClick={() => onQuestionClick(q)}
+                            className="min-w-0 flex-1 cursor-pointer"
+                          >
+                            <h4 className="text-sm font-bold text-white hover:text-primary-300 truncate mb-1">{q.title}</h4>
+                            <p className="text-[10px] text-gray-500 font-sans">Category: {q.category?.name || "General"} • Saved FAQ</p>
+                          </div>
+                          <div className="flex items-center gap-3 shrink-0">
+                            <button 
+                              onClick={() => toggleSaveFAQ(q)}
+                              className="rounded border border-red-500/20 bg-red-500/10 hover:bg-red-500/20 p-2 text-red-400 hover:text-white transition-colors"
+                              title="Unsave Bookmark"
+                            >
+                              <Trash size={14} />
+                            </button>
+                            <button 
+                              onClick={() => onQuestionClick(q)}
+                              className="flex items-center gap-1.5 rounded border border-white/10 bg-surface-light py-1.5 px-3 text-[10px] font-semibold text-gray-300 hover:text-white transition-colors"
+                            >
+                              <Eye size={12} />
+                              Open
+                            </button>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </div>
+              </div>
+            )}
+
+            {/* DRAFTS SUB-VIEW */}
+            {activeTab === "drafts" && (
+              <div className="space-y-6">
+                <div>
+                  <h2 className="text-xl font-bold text-white mb-2">My Drafts</h2>
+                  <p className="text-xs text-gray-500">Continue writing your unfinished internship questions.</p>
+                </div>
+
+                <div className="rounded-2xl border border-white/10 bg-surface-light p-6 shadow-xl">
+                  {drafts.length === 0 ? (
+                    <div className="rounded-xl border border-dashed border-white/10 bg-surface/30 p-12 text-center text-xs text-gray-500 font-sans leading-relaxed">
+                      No unfinished drafts found.
+                    </div>
+                  ) : (
+                    <div className="space-y-3">
+                      {drafts.map((d) => (
+                        <div 
+                          key={d._id}
+                          className="rounded-xl border border-white/5 bg-surface p-4 flex items-center justify-between gap-4"
+                        >
+                          <div className="min-w-0 flex-1">
+                            <h4 className="text-sm font-bold text-white truncate mb-1">{d.title || "[No Title]"}</h4>
+                            <p className="text-[10px] text-gray-500 font-sans">Created: {new Date(d.createdAt).toLocaleDateString()}</p>
+                          </div>
+                          <div className="flex items-center gap-2 shrink-0">
+                            <button 
+                              onClick={() => deleteDraft(d._id)}
+                              className="rounded border border-red-500/20 bg-red-500/10 hover:bg-red-500/20 p-2 text-red-400 hover:text-white transition-colors"
+                              title="Delete Draft"
+                            >
+                              <Trash size={14} />
+                            </button>
+                            <button 
+                              onClick={() => onAskClick(d)}
+                              className="flex items-center gap-1.5 rounded bg-primary-500 hover:bg-primary-600 py-1.5 px-3.5 text-[10px] font-bold text-white transition-colors"
+                            >
+                              Continue Writing
+                            </button>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </div>
+              </div>
+            )}
+
+            {/* NOTIFICATIONS SUB-VIEW */}
+            {activeTab === "notifications" && (
+              <div className="space-y-6">
+                <div className="flex justify-between items-center flex-wrap gap-4">
+                  <div>
+                    <h2 className="text-xl font-bold text-white mb-2">My Notifications</h2>
+                    <p className="text-xs text-gray-500">Stay up to date with comments, answers, and moderation results on your posts.</p>
+                  </div>
+                  {unreadNotificationsCount > 0 && (
+                    <button 
+                      onClick={handleAllNotificationsRead}
+                      className="text-xs font-semibold px-4 py-2 rounded-lg bg-indigo-500/10 border border-indigo-500/25 text-indigo-400 hover:bg-indigo-500/20 transition-all duration-200"
+                    >
+                      Mark all as read
+                    </button>
+                  )}
+                </div>
+
+                <div className="rounded-2xl border border-white/10 bg-surface-light p-6 shadow-xl font-sans">
+                  {notifications.length === 0 ? (
+                    <div className="rounded-xl border border-dashed border-white/10 bg-surface/30 p-12 text-center text-xs text-gray-500 font-sans leading-relaxed">
+                      No notifications yet.
+                    </div>
+                  ) : (
+                    <div className="space-y-3">
+                      {notifications.map((n) => (
+                        <div 
+                          key={n._id}
+                          className={`rounded-xl border p-4 flex items-center justify-between gap-4 transition-all duration-200 ${
+                            n.isRead 
+                              ? "border-white/5 bg-surface/50 opacity-70" 
+                              : "border-indigo-500/20 bg-indigo-500/5"
+                          }`}
+                        >
+                          <div className="min-w-0 flex-1">
+                            <p className="text-sm font-semibold text-white leading-snug">
+                              {n.message}
+                            </p>
+                            <span className="text-[9px] text-gray-500 mt-1 block">
+                              Received: {new Date(n.createdAt).toLocaleDateString()} at {new Date(n.createdAt).toLocaleTimeString()}
+                            </span>
+                          </div>
+                          <div className="flex items-center gap-2 shrink-0">
+                            {!n.isRead && (
+                              <button 
+                                onClick={() => handleNotificationRead(n._id)}
+                                className="rounded bg-indigo-500 hover:bg-indigo-600 px-2.5 py-1 text-[10px] font-bold text-white transition-colors"
+                              >
+                                Mark Read
+                              </button>
+                            )}
+                            <button 
+                              onClick={() => handleNotificationDelete(n._id)}
+                              className="rounded border border-red-500/20 bg-red-500/10 hover:bg-red-500/20 p-2 text-red-400 hover:text-white transition-colors"
+                              title="Delete Notification"
+                            >
+                              <Trash size={12} />
+                            </button>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </div>
+              </div>
+            )}
+
             {/* SUB-VIEW: PENDING REVIEWS */}
             {activeTab === "pending" && (
               <div className="space-y-8">
