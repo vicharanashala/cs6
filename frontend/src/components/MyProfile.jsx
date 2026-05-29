@@ -255,7 +255,8 @@ const MyProfile = ({ currentUser, onBack, onQuestionClick, onAskClick }) => {
     try {
       const response = await api.patch(`/moderation/${targetId}/${action}`);
       if (response.data.success) {
-        setActionMessage(`Successfully executed ${action} action.`);
+        const label = action === 'reject' ? 'Report approved — content hidden' : action === 'approve' ? 'Report rejected — content kept visible' : `Successfully executed ${action} action.`;
+        setActionMessage(label);
         loadTabContent(); // Refresh queue lists
       }
     } catch (error) {
@@ -1138,22 +1139,18 @@ const MyProfile = ({ currentUser, onBack, onQuestionClick, onAskClick }) => {
                           </div>
                           <div className="flex gap-2 justify-end">
                             <button
-                              onClick={() => handleModerationAction(report.targetId?._id || report.targetId, "approve")}
-                              className="rounded bg-emerald-500 hover:bg-emerald-600 px-3 py-1.5 text-[10px] font-semibold text-white transition-colors"
-                            >
-                              Approve
-                            </button>
-                            <button
                               onClick={() => handleModerationAction(report.targetId?._id || report.targetId, "reject")}
                               className="rounded bg-red-500 hover:bg-red-600 px-3 py-1.5 text-[10px] font-semibold text-white transition-colors"
+                              title="Report is valid — hide this content"
                             >
-                              Reject
+                              Approve Report
                             </button>
                             <button
-                              onClick={() => handleModerationAction(report.targetId?._id || report.targetId, "escalate")}
-                              className="rounded border border-amber-500/30 bg-amber-500/10 px-3 py-1.5 text-[10px] font-semibold text-amber-400 transition-colors"
+                              onClick={() => handleModerationAction(report.targetId?._id || report.targetId, "approve")}
+                              className="rounded bg-emerald-500 hover:bg-emerald-600 px-3 py-1.5 text-[10px] font-semibold text-white transition-colors"
+                              title="Report is invalid — content is safe, keep it visible"
                             >
-                              Escalate
+                              Reject Report
                             </button>
                           </div>
                         </div>

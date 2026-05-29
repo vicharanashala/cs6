@@ -16,9 +16,10 @@ app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 
 // ─── Rate Limiting (as specified in API_v2.pdf Page 10) ───
-const devOrGetSkip = (req) => req.method === "GET" || process.env.NODE_ENV === "development";
+const isDev = !process.env.NODE_ENV || process.env.NODE_ENV === "development";
+const devOrGetSkip = (req) => req.method === "GET" || isDev;
 
-app.use("/api/auth", rateLimit({ windowMs: 15 * 60 * 1000, max: 10, skip: () => process.env.NODE_ENV === "development", message: { success: false, error: { code: "RATE_LIMITED", message: "Too many requests, please try again later." } } }));
+app.use("/api/auth", rateLimit({ windowMs: 15 * 60 * 1000, max: 10, skip: () => isDev, message: { success: false, error: { code: "RATE_LIMITED", message: "Too many requests, please try again later." } } }));
 app.use("/api/questions", rateLimit({ windowMs: 15 * 60 * 1000, max: 30, skip: devOrGetSkip, message: { success: false, error: { code: "RATE_LIMITED", message: "Too many requests, please try again later." } } }));
 app.use("/api/tickets", rateLimit({ windowMs: 15 * 60 * 1000, max: 20, skip: devOrGetSkip, message: { success: false, error: { code: "RATE_LIMITED", message: "Too many requests, please try again later." } } }));
 app.use("/api/reports", rateLimit({ windowMs: 15 * 60 * 1000, max: 15, skip: devOrGetSkip, message: { success: false, error: { code: "RATE_LIMITED", message: "Too many requests, please try again later." } } }));
