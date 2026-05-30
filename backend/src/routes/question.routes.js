@@ -56,13 +56,14 @@ router.patch("/:id/helpful", authMiddleware, toggleHelpfulVote);
 router.patch(
   "/:id",
   authMiddleware,
-  requireOwnerOrRole(Question, 'author', []), // empty roles array: only owner can edit
+  requireOwnerOrRole(Question, 'author', ['admin', 'moderator']), // owner, admin or moderator can edit
   [
     body("title").optional().trim().isLength({ min: 10, max: 150 }).withMessage("Title must be between 10 and 150 characters"),
     body("body").optional().trim().isLength({ min: 20 }).withMessage("Body must be at least 20 characters long"),
     body("tags").optional().isArray({ min: 1, max: 5 }).withMessage("Tags must be an array of 1 to 5 strings"),
     body("tags.*").optional().trim().notEmpty().withMessage("Tag value cannot be empty"),
-    body("category").optional().isMongoId().withMessage("Category must be a valid Mongo ID")
+    body("category").optional().isMongoId().withMessage("Category must be a valid Mongo ID"),
+    body("lifecycleBucket").optional({ nullable: true }).isIn(['onboarding', 'documentation', 'vibe', 'projects', null]).withMessage("Invalid lifecycle bucket value")
   ],
   validateRequest,
   editQuestion

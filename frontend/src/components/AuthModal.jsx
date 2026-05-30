@@ -16,7 +16,8 @@ const AuthModal = ({ isOpen, onClose, onAuthSuccess, initialMode = "login" }) =>
     username: "",
     name: "",
     email: "",
-    password: ""
+    password: "",
+    internshipStartDate: ""
   });
 
   // Forgot password state
@@ -63,7 +64,13 @@ const AuthModal = ({ isOpen, onClose, onAuthSuccess, initialMode = "login" }) =>
       const endpoint = isLogin ? "/auth/login" : "/auth/register";
       const payload = isLogin 
         ? { email: formData.email, password: formData.password }
-        : { username: formData.username, name: formData.name, email: formData.email, password: formData.password };
+        : { 
+            username: formData.username, 
+            name: formData.name, 
+            email: formData.email, 
+            password: formData.password,
+            internshipStartDate: formData.internshipStartDate 
+          };
 
       const response = await api.post(endpoint, payload);
       
@@ -92,7 +99,7 @@ const AuthModal = ({ isOpen, onClose, onAuthSuccess, initialMode = "login" }) =>
   };
 
   const handleClose = () => {
-    setFormData({ username: "", name: "", email: "", password: "" });
+    setFormData({ username: "", name: "", email: "", password: "", internshipStartDate: "" });
     setError("");
     setMode("auth");
     setForgotStep(1);
@@ -594,6 +601,22 @@ const AuthModal = ({ isOpen, onClose, onAuthSuccess, initialMode = "login" }) =>
                         required
                         placeholder="Riya Sharma"
                         className="w-full rounded-lg border border-white/10 bg-surface py-2.5 pl-10 pr-4 text-sm text-white placeholder-gray-600 focus:border-primary-500 focus:outline-none"
+                      />
+                    </div>
+                  </div>
+
+                  <div>
+                    <label className="block text-xs font-semibold text-gray-400 uppercase mb-1.5">
+                      Internship Start Date
+                    </label>
+                    <div className="relative">
+                      <input
+                        type="date"
+                        name="internshipStartDate"
+                        value={formData.internshipStartDate}
+                        onChange={handleChange}
+                        required
+                        className="w-full rounded-lg border border-white/10 bg-surface py-2.5 px-4 text-sm text-white focus:border-primary-500 focus:outline-none"
                       />
                     </div>
                   </div>

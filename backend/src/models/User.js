@@ -53,6 +53,10 @@ const userSchema = new mongoose.Schema({
     type: mongoose.Schema.Types.ObjectId,
     ref: 'Organization',
     default: null
+  },
+  internshipStartDate: {
+    type: Date,
+    default: null
   }
 }, { timestamps: { createdAt: 'createdAt', updatedAt: true } }); // Sync updatedAt to trace user modifications
 

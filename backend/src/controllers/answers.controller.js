@@ -138,30 +138,14 @@ export const createAnswer = async (req, res, next) => {
         data: newAnswer
       });
     } else {
-      // Content is safe
-      newAnswer.status = 'visible';
-      newAnswer.moderationState = 'approved';
+      // Content is safe but requires manual admin approval
+      newAnswer.status = 'pending';
+      newAnswer.moderationState = 'pending';
       await newAnswer.save();
-
-      // Dynamically assign 'answered' state once a question receives community answer
-      if (question.status === 'unresolved') {
-        question.status = 'answered';
-        await question.save();
-      }
-
-      // Trigger Notification for question owner
-      if (question.author.toString() !== req.user.userId) {
-        await Notification.create({
-          userId: question.author,
-          type: 'answer_posted',
-          referenceId: question._id,
-          referenceType: 'question',
-          message: `Someone answered your question: "${question.title.slice(0, 60)}..."`
-        });
-      }
 
       return res.status(201).json({
         success: true,
+        message: 'Your answer has been submitted and is pending moderator approval.',
         data: newAnswer
       });
     }

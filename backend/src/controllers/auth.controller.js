@@ -42,7 +42,7 @@ const generateRefreshToken = async (user) => {
 
 export const register = async (req, res, next) => {
   try {
-    const { username, name, email, password } = req.body;
+    const { username, name, email, password, internshipStartDate } = req.body;
 
     // Check uniqueness
     const existingEmail = await User.findOne({ email: email.toLowerCase() });
@@ -78,7 +78,8 @@ export const register = async (req, res, next) => {
       name,
       email: email.toLowerCase(),
       passwordHash,
-      role: 'user' // Default role for standard registers
+      role: 'user', // Default role for standard registers
+      internshipStartDate: internshipStartDate ? new Date(internshipStartDate) : null
     });
 
     await newUser.save();
@@ -99,7 +100,8 @@ export const register = async (req, res, next) => {
           role: newUser.role,
           badgeLevel: newUser.badgeLevel,
           avatar: newUser.avatar,
-          createdAt: newUser.createdAt
+          createdAt: newUser.createdAt,
+          internshipStartDate: newUser.internshipStartDate
         }
       }
     });
@@ -150,7 +152,8 @@ export const login = async (req, res, next) => {
           role: user.role,
           badgeLevel: user.badgeLevel,
           avatar: user.avatar,
-          createdAt: user.createdAt
+          createdAt: user.createdAt,
+          internshipStartDate: user.internshipStartDate
         }
       }
     });

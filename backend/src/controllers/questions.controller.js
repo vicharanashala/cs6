@@ -2,6 +2,8 @@ import Question from '../models/Question.js';
 import Answer from '../models/Answer.js';
 import AuditLog from '../models/AuditLog.js';
 import Report from '../models/Report.js';
+import User from '../models/User.js';
+import { getLifecycleBucket } from './cohort.controller.js';
 import { checkDuplicate, findSimilarQuestions, findDuplicateQuestions } from '../services/duplicate.service.js';
 import { moderateText } from '../utils/moderation.js';
 import { generateEmbedding } from '../utils/embeddings.js';
@@ -141,6 +143,16 @@ export const createQuestion = async (req, res, next) => {
       console.error("[VectorSearch] Failed to generate embedding during create:", err.message);
     }
 
+    // Calculate cohort lifecycle bucket
+    const author = await User.findById(req.user.userId);
+    let lifecycleBucket = null;
+    if (author) {
+      const startDate = author.internshipStartDate ? new Date(author.internshipStartDate) : new Date(author.createdAt);
+      const diffTime = Math.max(0, new Date() - startDate);
+      const diffDays = Math.floor(diffTime / (1000 * 60 * 60 * 24));
+      lifecycleBucket = getLifecycleBucket(diffDays);
+    }
+
     // Step 2 — Temporarily store content in pending state
     const newQuestion = new Question({
       title,
@@ -151,7 +163,8 @@ export const createQuestion = async (req, res, next) => {
       organizationId: req.user.organizationId || null,
       status: 'pending',
       moderationStatus: 'pending',
-      embedding
+      embedding,
+      lifecycleBucket
     });
 
     await newQuestion.save();
@@ -271,7 +284,7 @@ export const getQuestionById = async (req, res, next) => {
 export const toggleHelpfulVote = async (req, res, next) => {
   try {
     const { id } = req.params;
-    const userId = req.user._id;
+    const userId = req.user.userId;
 
     const question = await Question.findById(id);
     if (!question) {
@@ -309,7 +322,7 @@ export const editQuestion = async (req, res, next) => {
   try {
     // req.resource is pre-fetched by requireOwnerOrRole middleware
     const question = req.resource;
-    const { title, body, tags, category } = req.body;
+    const { title, body, tags, category, lifecycleBucket } = req.body;
 
     if (title) {
       question.title = title;
@@ -325,6 +338,7 @@ export const editQuestion = async (req, res, next) => {
     if (body) question.body = body;
     if (tags) question.tags = tags;
     if (category) question.category = category;
+    if (lifecycleBucket !== undefined) question.lifecycleBucket = lifecycleBucket;
 
     await question.save();
 

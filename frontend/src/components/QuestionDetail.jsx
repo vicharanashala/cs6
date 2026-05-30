@@ -570,6 +570,38 @@ const QuestionDetail = ({ question, onBack, currentUser, onAuthRequired }) => {
 
               {/* Action Buttons: Edit, Delete, Promote FAQ */}
               <div className="flex flex-wrap items-center gap-2">
+                {/* Lifecycle Phase Override (Admin/Coordinator only) */}
+                {isModeratorOrAdmin && (
+                  <div className="flex items-center gap-2 rounded bg-surface border border-white/5 py-1 px-3 text-xs text-gray-300">
+                    <span className="font-semibold text-gray-400">Lifecycle Phase:</span>
+                    <select
+                      value={currentQuestion.lifecycleBucket || ""}
+                      onChange={async (e) => {
+                        const newBucket = e.target.value === "" ? null : e.target.value;
+                        try {
+                          const response = await api.patch(`/questions/${currentQuestion._id}`, {
+                            lifecycleBucket: newBucket
+                          });
+                          if (response.data.success) {
+                            setCurrentQuestion(response.data.data);
+                            setFeedbackMsg("Lifecycle phase overridden successfully.");
+                          }
+                        } catch (error) {
+                          console.error("Error overriding lifecycle bucket:", error);
+                          alert(error.response?.data?.error?.message || "Failed to update lifecycle phase.");
+                        }
+                      }}
+                      className="bg-transparent border-none text-xs text-white focus:outline-none focus:ring-0 cursor-pointer"
+                    >
+                      <option value="" className="bg-surface-light text-white">None (Automatic)</option>
+                      <option value="onboarding" className="bg-surface-light text-white">Onboarding (Days 0-3)</option>
+                      <option value="documentation" className="bg-surface-light text-white">Documentation (Days 4-7)</option>
+                      <option value="vibe" className="bg-surface-light text-white">ViBe Platform (Days 8-14)</option>
+                      <option value="projects" className="bg-surface-light text-white">Projects (Days 15+)</option>
+                    </select>
+                  </div>
+                )}
+
                 {/* FAQ promotion (Admin only, when resolved) */}
                 {isAdmin && currentQuestion.status === "resolved" && (
                   <button
