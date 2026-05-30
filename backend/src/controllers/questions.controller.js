@@ -10,10 +10,20 @@ export const getQuestions = async (req, res, next) => {
   try {
     const { status = 'open', category, tag, cursor, limit = 20, sort = 'newest' } = req.query;
 
-    const query = { status: status };
+    const query = {};
+    if (status !== 'all') {
+      // If comma-separated, treat as $in array
+      if (status.includes(',')) {
+        query.status = { $in: status.split(',') };
+      } else {
+        query.status = status;
+      }
+    } else {
+      query.status = { $ne: 'deleted' };
+    }
     
     // Ensure we do not display soft-deleted questions to public unless requested by admin
-    if (status === 'deleted' && req.user?.role !== 'admin') {
+    if ((status === 'deleted' || (query.status && query.status.$in && query.status.$in.includes('deleted'))) && req.user?.role !== 'admin') {
       return res.status(403).json({
         success: false,
         error: {

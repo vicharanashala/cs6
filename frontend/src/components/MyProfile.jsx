@@ -323,7 +323,7 @@ const MyProfile = ({ currentUser, onBack, onQuestionClick, onAskClick, initialTa
         const response = await api.get("/questions?sort=mostUpvoted");
         if (response.data.success) setPopularQuestions(response.data.data || []);
       } else if (activeTab === "whats-new") {
-        const response = await api.get("/questions?sort=newest");
+        const response = await api.get("/questions?status=pending,open,unresolved&sort=newest");
         if (response.data.success) setNewQuestions(response.data.data || []);
       } else if (activeTab === "saved-faqs") {
         const response = await api.get("/bookmarks");
@@ -1116,14 +1116,14 @@ const MyProfile = ({ currentUser, onBack, onQuestionClick, onAskClick, initialTa
             {activeTab === "whats-new" && (
               <div className="space-y-6">
                 <div>
-                  <h2 className="text-xl font-bold text-white mb-2">Recently Posted Questions</h2>
-                  <p className="text-xs text-gray-500">See what users are currently asking in real-time.</p>
+                  <h2 className="text-xl font-bold text-white mb-2">Open Questions</h2>
+                  <p className="text-xs text-gray-500">Recently posted questions waiting for answers.</p>
                 </div>
 
                 <div className="rounded-2xl border border-white/10 bg-surface-light p-6 shadow-xl">
                   {newQuestions.length === 0 ? (
                     <div className="rounded-xl border border-dashed border-white/10 bg-surface/30 p-12 text-center text-gray-500 font-sans">
-                      No recent questions found.
+                      No open questions found.
                     </div>
                   ) : (
                     <div className="space-y-3">
