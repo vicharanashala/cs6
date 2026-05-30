@@ -919,48 +919,20 @@ const MyProfile = ({ currentUser, onBack, onQuestionClick, onAskClick, initialTa
             {activeTab === "home" && (
               <div className="mx-auto max-w-6xl px-2">
 
-                {/* ── Hero Section ────────────────────────────────────────────── */}
-                <section className="mb-14 text-center max-w-3xl mx-auto">
-                  <h1 className="mb-4 text-4xl sm:text-5xl font-black tracking-tight leading-tight text-white">
-                    Find answers to your{" "}
-                    <span className="bg-gradient-to-r from-primary-400 to-purple-400 bg-clip-text text-transparent">
-                      Questions, Instantly.
-                    </span>
-                  </h1>
-                  <p className="mx-auto max-w-xl text-sm sm:text-base text-gray-400 mb-8 font-normal leading-relaxed">
-                    Search verified knowledge bases, find immediate resolutions to common campus issues, or contribute your own queries to the student crowdsourced portal.
-                  </p>
-
-                  {/* Hero Search Bar */}
-                  <div className="relative max-w-lg mx-auto shadow-2xl rounded-xl">
+                {/* ── Search Section ────────────────────────────────────────────── */}
+                <section className="mb-10">
+                  <div className="relative max-w-lg shadow-2xl rounded-xl">
                     <Search className="absolute top-4 left-4 h-5 w-5 text-gray-500" />
                     <input
                       type="text"
                       value={searchQuery}
                       onChange={(e) => setSearchQuery(e.target.value)}
-                      placeholder="Type keywords to filter categories..."
+                      placeholder="Type keywords to search or filter categories..."
                       className="w-full rounded-xl border border-white/10 bg-surface-light py-3.5 pl-12 pr-16 text-sm text-white placeholder-gray-600 focus:border-primary-500 focus:outline-none"
                     />
                     <button className="absolute right-2 top-2 rounded-lg bg-primary-500 p-2 text-white hover:bg-primary-600 active:scale-95 transition-all duration-300">
                       <Search size={16} />
                     </button>
-                  </div>
-
-                  {/* Feature Badges */}
-                  <div className="mt-8 flex flex-wrap justify-center gap-3">
-                    {[
-                      { label: "Quick Answers", icon: Zap },
-                      { label: "Trusted Information", icon: ShieldCheck },
-                      { label: "24/7 Help", icon: HelpCircle }
-                    ].map((badge) => {
-                      const Icon = badge.icon;
-                      return (
-                        <span key={badge.label} className="inline-flex items-center gap-1.5 rounded-full border border-white/5 bg-surface-light/40 px-4.5 py-1.5 text-xs font-medium text-gray-300 backdrop-blur-sm">
-                          <Icon size={12} className="text-primary-400" />
-                          {badge.label}
-                        </span>
-                      );
-                    })}
                   </div>
                 </section>
 
@@ -1095,54 +1067,7 @@ const MyProfile = ({ currentUser, onBack, onQuestionClick, onAskClick, initialTa
                       </div>
                     </section>
 
-                    {/* ── Featured FAQs ──────────────────────────────────────────── */}
-                    <section className="space-y-6">
-                      <div className="flex gap-8">
-                        {/* Popular FAQs */}
-                        <div className="flex-1">
-                          <h3 className="text-sm font-bold tracking-wider text-gray-400 uppercase mb-4 flex items-center gap-2">
-                            <Flame size={14} className="text-amber-400" /> Popular FAQs
-                          </h3>
-                          <div className="space-y-2">
-                            {popularQuestions.slice(0, 8).map((q) => (
-                              <div
-                                key={q._id}
-                                onClick={() => onQuestionClick(q)}
-                                className="group flex items-center justify-between rounded-xl border border-white/5 bg-surface-light p-3.5 hover:border-white/10 hover:bg-surface-lighter cursor-pointer transition-all duration-200 gap-4"
-                              >
-                                <div className="min-w-0 flex-1">
-                                  <h4 className="text-xs font-bold text-white group-hover:text-primary-300 truncate">{q.title}</h4>
-                                  <p className="text-[9px] text-gray-500 mt-0.5">Category: {q.category?.name} • {q.views || 0} views</p>
-                                </div>
-                                <ArrowRight size={13} className="text-gray-500 shrink-0 transition-transform group-hover:translate-x-0.5" />
-                              </div>
-                            ))}
-                          </div>
-                        </div>
 
-                        {/* What's New */}
-                        <div className="flex-1">
-                          <h3 className="text-sm font-bold tracking-wider text-gray-400 uppercase mb-4 flex items-center gap-2">
-                            <Sun size={14} className="text-yellow-400" /> What's New
-                          </h3>
-                          <div className="space-y-2">
-                            {newQuestions.slice(0, 8).map((q) => (
-                              <div
-                                key={q._id}
-                                onClick={() => onQuestionClick(q)}
-                                className="group flex items-center justify-between rounded-xl border border-white/5 bg-surface-light p-3.5 hover:border-white/10 hover:bg-surface-lighter cursor-pointer transition-all duration-200 gap-4"
-                              >
-                                <div className="min-w-0 flex-1">
-                                  <h4 className="text-xs font-bold text-white group-hover:text-primary-300 truncate">{q.title}</h4>
-                                  <p className="text-[9px] text-gray-500 mt-0.5">Category: {q.category?.name} • by {q.author?.name || q.author?.username}</p>
-                                </div>
-                                <ArrowRight size={13} className="text-gray-500 shrink-0 transition-transform group-hover:translate-x-0.5" />
-                              </div>
-                            ))}
-                          </div>
-                        </div>
-                      </div>
-                    </section>
                   </>
                 )}
               </div>
