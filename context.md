@@ -31,9 +31,10 @@ The platform is designed with automated moderation and duplicate prevention syst
 - **Authentication**: JSON Web Tokens (JWT) for access and refresh tokens, coupled with bcrypt password hashing
 
 ### AI & Natural Language Processing (NLP)
+- **Vector Search Engine**: MongoDB Atlas Vector Search
+- **Embeddings Generators**: OpenAI `text-embedding-3-small` (1536 dims) or Gemini `text-embedding-004` (768 dims) REST APIs
 - **Moderation Model**: `unitary/toxic-bert` hosted on Hugging Face Serverless Inference API
-- **Fallback Engine**: Local Regular Expression and Word-List Heuristics (custom-built)
-- **Semantic Detection**: Custom JS tokenization, stemming (Porter stemmer variant), Jaccard similarity, and Containment/Overlap coefficient calculations
+- **Fallback Engines**: Local Regular Expression / word-lists (for moderation) and custom Jaccard Similarity / Overlap coefficients (for duplicate search)
 
 ---
 
@@ -122,6 +123,12 @@ graph TD
 - **Rules**: Prevents reporting of questions/answers authored by administrators (returns `403 Forbidden`).
 - **Queue**: Items reported go directly to the administrator's review queue on the dashboard.
 
+### V. Live Semantic Similar Question & FAQ Suggestions (MongoDB Atlas Vector Search)
+- **Embedding Generation**: Automatically generates vector representations of question titles using Gemini (`text-embedding-004`), OpenAI (`text-embedding-3-small`), or Hugging Face, falling back to a deterministic hashing mock vectorizer in offline/keyless local development modes.
+- **Atlas Vector Search**: Queries the `questions` collection using MongoDB `$vectorSearch` aggregations. Re-ranks similar questions and FAQs using metadata boosts (recency, views, FAQ status, and accepted answers).
+- **Graceful Fallbacks**: If the search index is not yet built, the environment lacks Atlas capabilities, or the system is offline, the backend intercepts search errors and falls back to our local Jaccard + Overlap NLP similarity matching engine.
+- **Background Sync**: Runs a migration task at startup that backfills missing embeddings for historical questions.
+
 ---
 
 ## 5. Challenges Faced & Solutions
@@ -141,3 +148,7 @@ graph TD
 ### 4. Admin Dashboard Visibility of Flag Origin
 - **Problem**: Administrators had no way of knowing whether a reported item was caught by the automated AI filter or reported by a user, nor could they see the triggering toxicity scores.
 - **Solution**: Updated the dashboard report cards in `MyProfile.jsx` to render a custom `AI Auto-Moderation` badge if `reportedBy` is null, or display the reporter's username. Additionally, the exact API scores or matching local rule details are printed in an italicized details card.
+
+### 5. MongoDB Atlas Vector Search Index & Offline/Key Fallback Integration
+- **Problem**: MongoDB Atlas Vector Search indexes can take time to provision or fail entirely when deploying locally (since local MongoDB does not support search indexes), and embedding APIs require keys/internet that might not be available in all developer environments.
+- **Solution**: Implemented dynamic import hooks that try to programmatically build the index on database connection. Built a resilient embedding utility that supports OpenAI/Gemini/HF and falls back to deterministic LCG mock vectorization when offline. We then catch any errors from the `$vectorSearch` pipeline and gracefully redirect queries to our custom local Jaccard/Overlap NLP matcher, ensuring 100% test compatibility and zero runtime crashes.

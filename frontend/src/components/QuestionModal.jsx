@@ -49,7 +49,8 @@ const QuestionModal = ({ isOpen, onClose, categories = [], onQuestionCreated, dr
         const response = await api.post("/questions/duplicates", {
           title: formData.title,
           organizationId: currentUser?.organizationId || null,
-          tags: parsedTags
+          tags: parsedTags,
+          category: formData.category || null
         });
         if (response.data.success) {
           setSimilarQuestions(response.data.data || []);
@@ -64,7 +65,7 @@ const QuestionModal = ({ isOpen, onClose, categories = [], onQuestionCreated, dr
     }, 500);
 
     return () => clearTimeout(delayDebounce);
-  }, [formData.title, formData.tags, currentUser]);
+  }, [formData.title, formData.tags, formData.category, currentUser]);
 
   if (!isOpen) return null;
 

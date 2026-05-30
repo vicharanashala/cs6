@@ -14,6 +14,18 @@ const startServer = async () => {
   // Connect to MongoDB first
   await connectDB();
 
+  // Initialize Vector Search Index and Sync Existing Embeddings in background
+  try {
+    const { initializeVectorIndex, syncExistingEmbeddings } = await import("./src/utils/vectorSearch.js");
+    initializeVectorIndex().then(() => {
+      syncExistingEmbeddings();
+    }).catch(err => {
+      console.error("[VectorSearch] Background index initialization failed:", err.message);
+    });
+  } catch (err) {
+    console.error("[VectorSearch] Failed to load vectorSearch helpers:", err.message);
+  }
+
   // Start Express
   app.listen(PORT, () => {
     console.log(`\n🚀 Server running on http://localhost:${PORT}`);

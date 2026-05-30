@@ -59,6 +59,10 @@ const questionSchema = new mongoose.Schema({
     type: String,
     enum: ['pending', 'visible', 'flagged', 'under_review', 'rejected', 'approved'],
     default: 'pending'
+  },
+  embedding: {
+    type: [Number],
+    default: undefined
   }
 }, { timestamps: true });
 

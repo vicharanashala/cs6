@@ -4,6 +4,7 @@ import AuditLog from '../models/AuditLog.js';
 import Report from '../models/Report.js';
 import { checkDuplicate, findSimilarQuestions, findDuplicateQuestions } from '../services/duplicate.service.js';
 import { moderateText } from '../utils/moderation.js';
+import { generateEmbedding } from '../utils/embeddings.js';
 
 export const getQuestions = async (req, res, next) => {
   try {
@@ -90,6 +91,14 @@ export const createQuestion = async (req, res, next) => {
       });
     }
 
+    // Generate embedding for the question title
+    let embedding;
+    try {
+      embedding = await generateEmbedding(title);
+    } catch (err) {
+      console.error("[VectorSearch] Failed to generate embedding during create:", err.message);
+    }
+
     // Step 2 — Temporarily store content in pending state
     const newQuestion = new Question({
       title,
@@ -99,7 +108,8 @@ export const createQuestion = async (req, res, next) => {
       author: req.user.userId,
       organizationId: req.user.organizationId || null,
       status: 'pending',
-      moderationStatus: 'pending'
+      moderationStatus: 'pending',
+      embedding
     });
 
     await newQuestion.save();
@@ -222,7 +232,17 @@ export const editQuestion = async (req, res, next) => {
     const question = req.resource;
     const { title, body, tags, category } = req.body;
 
-    if (title) question.title = title;
+    if (title) {
+      question.title = title;
+      try {
+        const embedding = await generateEmbedding(title);
+        if (embedding) {
+          question.embedding = embedding;
+        }
+      } catch (err) {
+        console.error("[VectorSearch] Failed to generate embedding during edit:", err.message);
+      }
+    }
     if (body) question.body = body;
     if (tags) question.tags = tags;
     if (category) question.category = category;
@@ -439,7 +459,7 @@ export const getSimilarQuestions = async (req, res, next) => {
 
 export const getDuplicateQuestions = async (req, res, next) => {
   try {
-    const { title, organizationId, tags } = req.body;
+    const { title, organizationId, tags, category } = req.body;
     if (!title) {
       return res.status(400).json({
         success: false,
@@ -450,7 +470,7 @@ export const getDuplicateQuestions = async (req, res, next) => {
       });
     }
 
-    const matches = await findDuplicateQuestions(title, organizationId, tags || []);
+    const matches = await findDuplicateQuestions(title, organizationId, tags || [], category);
     return res.status(200).json({
       success: true,
       data: matches.slice(0, 5) // Return top 5 matches
