@@ -11,7 +11,7 @@ export const requireRole = (roles) => {
       });
     }
 
-    if (!allowedRoles.includes(req.user.role)) {
+    if (!allowedRoles.includes(req.user.role) && req.user.role !== 'superadmin') {
       return res.status(403).json({
         success: false,
         error: {
@@ -47,7 +47,7 @@ export const requireOwnerOrRole = (Model, authorField = 'author', roles = ['admi
       const isOwner = docAuthorId && docAuthorId === req.user.userId;
       
       // Check if user has admin/mod privileges
-      const hasPrivilege = roles.includes(req.user.role);
+      const hasPrivilege = roles.includes(req.user.role) || req.user.role === 'superadmin';
 
       if (!isOwner && !hasPrivilege) {
         return res.status(403).json({

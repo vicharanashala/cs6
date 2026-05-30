@@ -37,7 +37,7 @@ router.patch(
         throw new Error("Avatar must be a valid URL");
       }
     }),
-    body("role").optional().isIn(["user", "moderator", "admin"]).withMessage("Invalid role value"),
+    body("role").optional().isIn(["user", "moderator", "admin", "superadmin"]).withMessage("Invalid role value"),
     body("profileMetadata").optional().isObject().withMessage("profileMetadata must be an object")
   ],
   validateRequest,
@@ -52,7 +52,7 @@ router.patch(
   authMiddleware,
   requireRole("admin"),
   [
-    body("role").isIn(["user", "moderator", "admin"]).withMessage("Invalid role value")
+    body("role").isIn(["user", "moderator", "admin", "superadmin"]).withMessage("Invalid role value")
   ],
   validateRequest,
   changeUserRole

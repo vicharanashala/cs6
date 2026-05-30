@@ -146,14 +146,14 @@ export const updateMe = async (req, res, next) => {
     if (name) user.name = name;
     if (avatar !== undefined) user.avatar = avatar;
     if (role !== undefined) {
-      if (['user', 'moderator', 'admin'].includes(role)) {
+      if (['user', 'moderator', 'admin'].includes(role) && role !== 'superadmin') {
         user.role = role;
       } else {
         return res.status(400).json({
           success: false,
           error: {
             code: 'VALIDATION_ERROR',
-            message: 'Invalid role value'
+            message: 'Invalid role value or insufficient permissions'
           }
         });
       }
@@ -217,12 +217,23 @@ export const changeUserRole = async (req, res, next) => {
     const { id } = req.params;
     const { role } = req.body;
 
-    if (!['user', 'moderator', 'admin'].includes(role)) {
+    if (!['user', 'moderator', 'admin', 'superadmin'].includes(role)) {
       return res.status(400).json({
         success: false,
         error: {
           code: 'VALIDATION_ERROR',
           message: 'Invalid role value'
+        }
+      });
+    }
+
+    // Only superadmin can promote/demote admins or superadmins
+    if (['admin', 'superadmin'].includes(role) && req.user.role !== 'superadmin') {
+      return res.status(403).json({
+        success: false,
+        error: {
+          code: 'FORBIDDEN',
+          message: 'Forbidden: Only a superadmin can assign the admin or superadmin role.'
         }
       });
     }

@@ -14,6 +14,14 @@ const startServer = async () => {
   // Connect to MongoDB first
   await connectDB();
 
+  // Ensure superadmin account exists
+  try {
+    const { seedSuperadmin } = await import("./src/utils/seedSuperadmin.js");
+    await seedSuperadmin();
+  } catch (err) {
+    console.error("[Seeder] Failed to load or execute seedSuperadmin:", err.message);
+  }
+
   // Initialize Vector Search Index and Sync Existing Embeddings in background
   try {
     const { initializeVectorIndex, syncExistingEmbeddings } = await import("./src/utils/vectorSearch.js");

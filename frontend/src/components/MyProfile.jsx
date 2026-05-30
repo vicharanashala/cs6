@@ -9,6 +9,7 @@ import {
   Library, Compass, Globe, Search, Zap, ShieldCheck, HelpCircle, ArrowRight
 } from "lucide-react";
 import api from "../api/axios";
+import UserManagement from "./UserManagement";
 
 const categoryMap = {
   technical: "Technical Issue",
@@ -25,7 +26,10 @@ const statusMap = {
 const MyProfile = ({ currentUser, onBack, onQuestionClick, onAskClick, initialTab, onCategorySelect }) => {
   const [profile, setProfile] = useState(null);
   const [loadingProfile, setLoadingProfile] = useState(true);
-  const [activeTab, setActiveTab] = useState(currentUser?.role === "admin" ? "pending" : "home");
+  const [activeTab, setActiveTab] = useState(
+    currentUser?.role === "superadmin" ? "users" : 
+    currentUser?.role === "admin" ? "pending" : "home"
+  );
 
   useEffect(() => {
     if (initialTab) {
@@ -82,7 +86,8 @@ const MyProfile = ({ currentUser, onBack, onQuestionClick, onAskClick, initialTa
   const [staffList, setStaffList] = useState([]);
 
   const isStudent = currentUser?.role === "user";
-  const isAdmin = currentUser?.role === "admin";
+  const isAdmin = currentUser?.role === "admin" || currentUser?.role === "superadmin";
+  const isSuperadmin = currentUser?.role === "superadmin";
 
   useEffect(() => {
     if (currentUser?._id) {
@@ -292,7 +297,7 @@ const MyProfile = ({ currentUser, onBack, onQuestionClick, onAskClick, initialTa
         const qResponse = await api.get(`/users/${currentUser._id}/questions`);
         const aResponse = await api.get(`/users/${currentUser._id}/answers`);
         if (qResponse.data.success) setSubmissions(qResponse.data.data || []);
-        if (aResponse.data.success) setUserAnswers(aResponse.data.data || []);
+        if (aResponse.data.success) setUserAnswers(qResponse.data.data || []);
       } else if (activeTab === "approved") {
         // Fetch resolved/approved FAQs
         const response = await api.get("/moderation/queue/resolved");
@@ -621,6 +626,20 @@ const MyProfile = ({ currentUser, onBack, onQuestionClick, onAskClick, initialTa
                   Admin / Reviewer
                 </span>
 
+                {isSuperadmin && (
+                  <button
+                    onClick={() => setActiveTab("users")}
+                    className={`flex items-center gap-3 w-full rounded-lg px-3.5 py-2.5 text-sm font-semibold transition-all duration-200 ${
+                      activeTab === "users"
+                        ? "bg-blue-950/40 text-blue-400 border-l-2 border-primary-500"
+                        : "text-gray-300 hover:text-white hover:bg-white/5"
+                    }`}
+                  >
+                    <Shield size={18} className={activeTab === "users" ? "text-blue-400" : "text-gray-400"} />
+                    User Management
+                  </button>
+                )}
+
                 <button
                   onClick={() => setActiveTab("pending")}
                   className={`flex items-center gap-3 w-full rounded-lg px-3.5 py-2.5 text-sm font-semibold transition-all duration-200 ${
@@ -889,6 +908,13 @@ const MyProfile = ({ currentUser, onBack, onQuestionClick, onAskClick, initialTa
           </div>
         ) : (
           <>
+            {/* USERS TAB */}
+            {activeTab === "users" && isSuperadmin && (
+              <div className="animate-in fade-in slide-in-from-bottom-4 duration-500">
+                <UserManagement />
+              </div>
+            )}
+
             {/* ── HOME TAB — Full FAQ Portal ─────────────────────────────────── */}
             {activeTab === "home" && (
               <div className="mx-auto max-w-6xl px-2">
