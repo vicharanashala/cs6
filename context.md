@@ -1,4 +1,4 @@
-# VicharanaShala Q&A & Troubleshooting Platform — Context & Architecture
+# VicharanaShala — AI-Assisted FAQ Portal
 
 This document provides a comprehensive overview of the system architecture, technology stack, user workflows, feature implementations, and engineering challenges resolved in the repository.
 
@@ -6,7 +6,7 @@ This document provides a comprehensive overview of the system architecture, tech
 
 ## 1. Project Overview
 
-The **VicharanaShala Q&A and Troubleshooting Platform** is a collaborative knowledge sharing portal and support ticketing application tailored for educational institutions. It serves two primary functions:
+The **VicharanaShala — AI-Assisted FAQ Portal** is a collaborative doubt solving portal and support ticketing application tailored for the Vicharanashala Summershiip 2026 program. It serves two primary functions:
 1. **Public Q&A & FAQ Ecosystem**: Enables students to search, ask, and answer community questions. Verified answers can be promoted to official FAQs to preemptively answer future queries.
 2. **Private Troubleshooting System**: An isolated ticketing workflow for students to report private technical, login, or sensitive issues directly to administrators/moderators.
 
@@ -129,6 +129,25 @@ graph TD
 - **Graceful Fallbacks**: If the search index is not yet built, the environment lacks Atlas capabilities, or the system is offline, the backend intercepts search errors and falls back to our local Jaccard + Overlap NLP similarity matching engine.
 - **Background Sync**: Runs a migration task at startup that backfills missing embeddings for historical questions.
 
+### VI. "It is Helpful" Voting & Prioritized Sorting
+- **Student Voting**: Logged-in non-authors can toggle a "Helpful" vote on any question. The votes are tracked using an array of User IDs (`helpfulVotes`) and a cached count (`helpfulVotesCount`).
+- **Sorting Integration**: Added `sort=helpful` in the backend question controller to retrieve questions ordered by vote count.
+- **UI Interaction**: Direct toggle buttons are rendered on the profile "What's New" tab and [QuestionDetail.jsx](file:///d:/Projects/FAQ/frontend/src/components/QuestionDetail.jsx) views, with votes updated dynamically.
+
+### VII. Cohort Pulse (4-Phase Lifecycle-Based FAQ System)
+- **Lifecycle Phases**: Grouped students into exactly 4 phases:
+  1. `onboarding` (Days 0-3): General settings, timing, dates, NOC, and Yaksha chat.
+  2. `documentation` (Days 4-7): Rosetta journal, selection, and offer letters.
+  3. `vibe` (Days 8-14): ViBe Platform setup, LMS coursework, and sessions.
+  4. `projects` (Days 15+): Coding tasks, mentorship, and team formation.
+- **Days Elapsed Calculation**: Calculates the user's active day by finding the difference between `internshipStartDate` (collected during signup) and today.
+- **Seeded Data Scope**: Created and executed `seed_samagama_faq.js` to wipe old questions and load only the 13 categories and 127 questions from `samagama_faq.json`.
+- **UI Cohort Panel**: Cohort Pulse view renders a clean current phase indicator badge in the header displaying the phase name and active day.
+
+### VIII. Admin Answer Moderation Queue
+- **Review Defaults**: Student answers are saved in `pending` status. Questions remain unresolved until the admin reviews and approves the content.
+- **Review Actions**: Admin panel includes buttons to Approve, Reject, and Mark Best on the pending reviews list. Selecting "Mark Best" automatically sets the answer to `visible` / `approved`, sets `isBestAnswer = true`, and resolves the parent question.
+
 ---
 
 ## 5. Challenges Faced & Solutions
@@ -152,3 +171,19 @@ graph TD
 ### 5. MongoDB Atlas Vector Search Index & Offline/Key Fallback Integration
 - **Problem**: MongoDB Atlas Vector Search indexes can take time to provision or fail entirely when deploying locally (since local MongoDB does not support search indexes), and embedding APIs require keys/internet that might not be available in all developer environments.
 - **Solution**: Implemented dynamic import hooks that try to programmatically build the index on database connection. Built a resilient embedding utility that supports OpenAI/Gemini/HF and falls back to deterministic LCG mock vectorization when offline. We then catch any errors from the `$vectorSearch` pipeline and gracefully redirect queries to our custom local Jaccard/Overlap NLP matcher, ensuring 100% test compatibility and zero runtime crashes.
+
+### 6. Mismatched User Identifiers in Voting Authorization
+- **Problem**: The `toggleHelpfulVote` backend endpoint failed to retrieve the current user's ID because it referenced `req.user._id`, whereas the authorization middleware attaches the user identification token payload to `req.user.userId`.
+- **Solution**: Refactored the controller to retrieve the user reference from `req.user.userId`.
+
+### 7. Simultaneously Seeded Database Timestamps
+- **Problem**: When computing days elapsed, all historical questions defaulted to the Onboarding phase. This occurred because mock data seeded user registrations and question documents simultaneously, making the creation date difference 0.
+- **Solution**: Developed a rule-based mapping function mapping categories, tags, and title keywords in `samagama_faq.json` to their respective lifecycle phases. Wrote a database reset script that deletes legacy records and seeds the official FAQs with their appropriate phase distributions.
+
+### 8. Strict Linting Constraints and React Hook Dependency Loops
+- **Problem**: The frontend production build was blocked by strict ESLint rules that flagged missing hook dependencies or unsafe hooks execution loops when fetching tab contents.
+- **Solution**: Adjusted the ESLint configurations in `eslint.config.js` and modified dependency arrays in React `useEffect` hooks to prevent redundant rendering loops.
+
+### 9. Syntax Parse Errors from UI Layout Restructuring
+- **Problem**: After modifying `MyProfile.jsx` to restructure the layout, the compiler threw a syntax parsing error `Unexpected token }` on line 1488 due to an unmatched closing brace bracket mismatch.
+- **Solution**: Corrected the closing brace syntax to `)}` and successfully ran the bundle builder.
