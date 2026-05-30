@@ -10,6 +10,7 @@ import {
 } from "lucide-react";
 import api from "../api/axios";
 import UserManagement from "./UserManagement";
+import CategoryManagement from "./CategoryManagement";
 
 const categoryMap = {
   technical: "Technical Issue",
@@ -586,17 +587,7 @@ const MyProfile = ({ currentUser, onBack, onQuestionClick, onAskClick, initialTa
                   All FAQs
                 </button>
 
-                <button
-                  onClick={() => setActiveTab("categories")}
-                  className={`flex items-center gap-3 w-full rounded-lg px-3.5 py-2.5 text-sm font-semibold transition-all duration-200 ${
-                    activeTab === "categories"
-                      ? "bg-blue-950/40 text-blue-400 border-l-2 border-primary-500"
-                      : "text-gray-300 hover:text-white hover:bg-white/5"
-                  }`}
-                >
-                  <Folder size={18} className={activeTab === "categories" ? "text-blue-400" : "text-gray-400"} />
-                  Categories
-                </button>
+
 
                 <button
                   onClick={onAskClick}
@@ -637,6 +628,20 @@ const MyProfile = ({ currentUser, onBack, onQuestionClick, onAskClick, initialTa
                   >
                     <Shield size={18} className={activeTab === "users" ? "text-blue-400" : "text-gray-400"} />
                     User Management
+                  </button>
+                )}
+
+                {isAdmin && (
+                  <button
+                    onClick={() => setActiveTab("categories")}
+                    className={`flex items-center gap-3 w-full rounded-lg px-3.5 py-2.5 text-sm font-semibold transition-all duration-200 ${
+                      activeTab === "categories"
+                        ? "bg-blue-950/40 text-blue-400 border-l-2 border-primary-500"
+                        : "text-gray-300 hover:text-white hover:bg-white/5"
+                    }`}
+                  >
+                    <Folder size={18} className={activeTab === "categories" ? "text-blue-400" : "text-gray-400"} />
+                    Categories
                   </button>
                 )}
 
@@ -912,6 +917,13 @@ const MyProfile = ({ currentUser, onBack, onQuestionClick, onAskClick, initialTa
             {activeTab === "users" && isSuperadmin && (
               <div className="animate-in fade-in slide-in-from-bottom-4 duration-500">
                 <UserManagement />
+              </div>
+            )}
+
+            {/* CATEGORIES TAB */}
+            {activeTab === "categories" && isAdmin && (
+              <div className="animate-in fade-in slide-in-from-bottom-4 duration-500">
+                <CategoryManagement />
               </div>
             )}
 
@@ -1517,29 +1529,7 @@ const MyProfile = ({ currentUser, onBack, onQuestionClick, onAskClick, initialTa
               </div>
             )}
 
-            {/* SUB-VIEW: CATEGORIES */}
-            {activeTab === "categories" && (
-              <div className="space-y-6">
-                <div>
-                  <h2 className="text-xl font-bold text-white mb-2">Category Configurations</h2>
-                  <p className="text-xs text-gray-500">Browse categories and active question counts.</p>
-                </div>
 
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  {categories.map((cat) => (
-                    <div key={cat._id} className="rounded-2xl border border-white/10 bg-surface-light p-6 shadow-xl flex flex-col justify-between">
-                      <div>
-                        <h4 className="text-base font-bold text-white mb-2">{cat.name}</h4>
-                        <p className="text-xs text-gray-400 leading-relaxed mb-4">{cat.description}</p>
-                      </div>
-                      <span className="text-[10px] font-bold uppercase tracking-wider text-indigo-400 bg-indigo-500/10 border border-indigo-500/20 px-2.5 py-1 rounded-full self-start">
-                        Questions: {cat.questionCount ?? 0}
-                      </span>
-                    </div>
-                  ))}
-                </div>
-              </div>
-            )}
 
             {/* SUB-VIEW: MY SUBMISSIONS */}
             {activeTab === "submissions" && (
