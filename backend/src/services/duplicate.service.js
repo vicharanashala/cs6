@@ -56,18 +56,25 @@ export const findSimilarQuestions = async (title, body = '') => {
       const dbResults = await Question.aggregate(pipeline);
       if (dbResults && dbResults.length > 0) {
         const ranked = dbResults.map(q => {
-          let similarity = Math.max(0, 2 * q.score - 1);
+          // MongoDB vectorSearchScore for cosine = (1 + cosine_similarity) / 2
+          // so cosine_similarity = 2 * score - 1, typically in [0.5, 1.0] range
+          const cosine = Math.max(0, 2 * q.score - 1);
 
-          // Re-rank with factual usefulness and recency boosts
-          if (q.isFAQ) similarity += 0.08;
-          if (q.linkedBestAnswerId || q.acceptedAnswerId) similarity += 0.05;
-          similarity += Math.min(0.02, (q.views || 0) / 1000);
+          // Rescale: the noise floor for unrelated text is ~0.50 cosine.
+          // Map [0.50, 1.0] → [0.0, 1.0] so unrelated content starts near 0%
+          const FLOOR = 0.50;
+          const baseSimilarity = Math.max(0, (cosine - FLOOR) / (1.0 - FLOOR));
+
+          // Apply small multiplicative boosts for metadata relevance
+          let boost = 1.0;
+          if (q.isFAQ) boost += 0.10;
+          if (q.linkedBestAnswerId || q.acceptedAnswerId) boost += 0.06;
+          boost += Math.min(0.03, (q.views || 0) / 5000);
 
           const ageInDays = (new Date() - new Date(q.createdAt)) / (1000 * 60 * 60 * 24);
-          const recencyBoost = Math.max(0, 0.05 * (1 - ageInDays / 365));
-          similarity += recencyBoost;
+          boost += Math.max(0, 0.05 * (1 - ageInDays / 365));
 
-          const finalSimilarity = Math.min(1.0, similarity);
+          const finalSimilarity = Math.min(1.0, baseSimilarity * boost);
 
           return {
             question: q,
@@ -221,27 +228,33 @@ export const findDuplicateQuestions = async (title, organizationId, tags = [], c
       if (dbResults && dbResults.length > 0) {
         const categoryMap = await getCategoryMap();
         const suggestions = dbResults.map(q => {
-          let similarity = Math.max(0, 2 * q.score - 1);
+          // MongoDB vectorSearchScore for cosine = (1 + cosine_similarity) / 2
+          const cosine = Math.max(0, 2 * q.score - 1);
 
-          // Re-rank with metadata boosts
+          // Rescale: noise floor for unrelated text is ~0.50 cosine
+          // Map [0.50, 1.0] → [0.0, 1.0]
+          const FLOOR = 0.50;
+          const baseSimilarity = Math.max(0, (cosine - FLOOR) / (1.0 - FLOOR));
+
+          // Multiplicative boosts for metadata relevance
+          let boost = 1.0;
           if (q.category) {
             const catName = categoryMap.get(q.category.toString());
             if (catName && title.toLowerCase().includes(catName)) {
-              similarity += 0.05;
+              boost += 0.06;
             }
             if (category && q.category.toString() === category.toString()) {
-              similarity += 0.15;
+              boost += 0.18;
             }
           }
-          if (q.isFAQ) similarity += 0.08;
-          if (q.linkedBestAnswerId || q.acceptedAnswerId) similarity += 0.05;
-          similarity += Math.min(0.02, (q.views || 0) / 1000);
+          if (q.isFAQ) boost += 0.10;
+          if (q.linkedBestAnswerId || q.acceptedAnswerId) boost += 0.06;
+          boost += Math.min(0.03, (q.views || 0) / 5000);
 
           const ageInDays = (new Date() - new Date(q.createdAt)) / (1000 * 60 * 60 * 24);
-          const recencyBoost = Math.max(0, 0.05 * (1 - ageInDays / 365));
-          similarity += recencyBoost;
+          boost += Math.max(0, 0.05 * (1 - ageInDays / 365));
 
-          const similarityPercentage = Math.round(Math.min(1.0, similarity) * 100);
+          const similarityPercentage = Math.round(Math.min(1.0, baseSimilarity * boost) * 100);
 
           return {
             _id: q._id,
