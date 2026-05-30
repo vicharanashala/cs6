@@ -37,12 +37,42 @@ export const getQuestions = async (req, res, next) => {
 
     if (sort === 'mostViewed') {
       sortConfig = { views: -1, _id: -1 };
-      // For views cursor, it requires a compound cursor, but fallback to limit-based sorting for complex sort
     } else if (sort === 'unanswered') {
       query.linkedBestAnswerId = null;
     }
 
     const limitNum = parseInt(limit, 10) || 20;
+
+    // Handle mostUpvoted using aggregation on Answer model
+    if (sort === 'mostUpvoted') {
+      const topAnswers = await Answer.aggregate([
+        { $match: { status: 'visible' } },
+        { $sort: { upvoteCount: -1 } },
+        { $group: { _id: "$questionId", upvoteCount: { $first: "$upvoteCount" } } },
+        { $sort: { upvoteCount: -1 } },
+        { $limit: limitNum }
+      ]);
+
+      const questionIds = topAnswers.map(a => a._id);
+
+      const questions = await Question.find({ 
+        _id: { $in: questionIds }, 
+        status: { $ne: 'deleted' } 
+      })
+        .populate('author', 'username name avatar role badgeLevel')
+        .populate('category', 'name');
+
+      // Sort questions based on the aggregated topAnswers order
+      questions.sort((a, b) => {
+         return questionIds.findIndex(id => id.equals(a._id)) - questionIds.findIndex(id => id.equals(b._id));
+      });
+
+      return res.status(200).json({
+        success: true,
+        data: questions,
+        meta: { nextCursor: null, hasMore: false, total: questions.length }
+      });
+    }
 
     const questions = await Question.find(query)
       .populate('author', 'username name avatar role badgeLevel')

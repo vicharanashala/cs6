@@ -320,7 +320,7 @@ const MyProfile = ({ currentUser, onBack, onQuestionClick, onAskClick, initialTa
           if (staffRes.data.success) setStaffList(staffRes.data.data || []);
         }
       } else if (activeTab === "popular") {
-        const response = await api.get("/questions?sort=mostViewed");
+        const response = await api.get("/questions?sort=mostUpvoted");
         if (response.data.success) setPopularQuestions(response.data.data || []);
       } else if (activeTab === "whats-new") {
         const response = await api.get("/questions?sort=newest");
