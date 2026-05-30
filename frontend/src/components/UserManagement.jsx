@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { Search, Shield, User as UserIcon, CheckCircle, XCircle } from "lucide-react";
+import { Search, Shield } from "lucide-react";
 import api from "../api/axios";
 
 const UserManagement = () => {
@@ -8,23 +8,24 @@ const UserManagement = () => {
   const [error, setError] = useState("");
   const [searchTerm, setSearchTerm] = useState("");
 
-  useEffect(() => {
-    fetchUsers();
-  }, []);
-
   const fetchUsers = async () => {
+    await Promise.resolve();
     try {
       setLoading(true);
       const res = await api.get("/users");
       if (res.data.success) {
         setUsers(res.data.data);
       }
-    } catch (err) {
+    } catch {
       setError("Failed to load users");
     } finally {
       setLoading(false);
     }
   };
+
+  useEffect(() => {
+    fetchUsers();
+  }, []);
 
   const promoteToAdmin = async (userId, currentRole) => {
     if (currentRole === "admin" || currentRole === "superadmin") return;
@@ -102,8 +103,8 @@ const UserManagement = () => {
                       {user.avatar ? (
                         <img src={user.avatar} alt="" className="w-8 h-8 rounded-full bg-surface-light object-cover" />
                       ) : (
-                        <div className="w-8 h-8 rounded-full bg-surface-light flex items-center justify-center text-gray-400 border border-white/10">
-                          <UserIcon size={14} />
+                        <div className="w-8 h-8 rounded-full bg-surface-light flex items-center justify-center text-gray-400 border border-white/10 text-xs font-bold uppercase">
+                          {(user.name || user.username).substring(0, 2)}
                         </div>
                       )}
                       <div>

@@ -6,7 +6,7 @@ import {
   AlertTriangle, Save, Loader2, Send, ArrowLeft, GraduationCap,
   Flame, Sun, Bookmark, Edit3, Bell, User as UserIcon, Trash,
   UserPlus, DollarSign, BookOpen, Briefcase, Building, Cpu, Heart,
-  Library, Compass, Globe, Search, Zap, ShieldCheck, HelpCircle, ArrowRight
+  Library, Compass, Globe, Search, Zap, ShieldCheck, HelpCircle, ArrowRight, ThumbsUp
 } from "lucide-react";
 import api from "../api/axios";
 import UserManagement from "./UserManagement";
@@ -324,7 +324,7 @@ const MyProfile = ({ currentUser, onBack, onQuestionClick, onAskClick, initialTa
         const response = await api.get("/questions?sort=mostUpvoted");
         if (response.data.success) setPopularQuestions(response.data.data || []);
       } else if (activeTab === "whats-new") {
-        const response = await api.get("/questions?status=pending,open,unresolved&sort=newest");
+        const response = await api.get("/questions?status=pending,open,unresolved&sort=helpful");
         if (response.data.success) setNewQuestions(response.data.data || []);
       } else if (activeTab === "saved-faqs") {
         const response = await api.get("/bookmarks");
@@ -340,6 +340,35 @@ const MyProfile = ({ currentUser, onBack, onQuestionClick, onAskClick, initialTa
       console.error(`Error loading tab content for ${activeTab}:`, error);
     } finally {
       setLoadingData(false);
+    }
+  };
+
+  const handleHelpfulVote = async (e, qId) => {
+    e.stopPropagation();
+    try {
+      const response = await api.patch(`/questions/${qId}/helpful`);
+      if (response.data.success) {
+        // Update local state to reflect the new vote count
+        setNewQuestions(prev => prev.map(q => {
+          if (q._id === qId) {
+            const hasVoted = response.data.data.hasVoted;
+            let newVotes = q.helpfulVotes ? [...q.helpfulVotes] : [];
+            if (hasVoted && !newVotes.includes(currentUser?._id)) {
+              newVotes.push(currentUser?._id);
+            } else if (!hasVoted) {
+              newVotes = newVotes.filter(id => id !== currentUser?._id);
+            }
+            return {
+              ...q,
+              helpfulVotes: newVotes,
+              helpfulVotesCount: response.data.data.helpfulVotesCount
+            };
+          }
+          return q;
+        }).sort((a, b) => (b.helpfulVotesCount || 0) - (a.helpfulVotesCount || 0)));
+      }
+    } catch (err) {
+      console.error("Failed to toggle helpful vote:", err);
     }
   };
 
@@ -1129,7 +1158,7 @@ const MyProfile = ({ currentUser, onBack, onQuestionClick, onAskClick, initialTa
               <div className="space-y-6">
                 <div>
                   <h2 className="text-xl font-bold text-white mb-2">Open Questions</h2>
-                  <p className="text-xs text-gray-500">Recently posted questions waiting for answers.</p>
+                  <p className="text-xs text-gray-500">Open questions sorted by helpful votes, prioritizing urgent issues for immediate answering.</p>
                 </div>
 
                 <div className="rounded-2xl border border-white/10 bg-surface-light p-6 shadow-xl">
@@ -1149,7 +1178,21 @@ const MyProfile = ({ currentUser, onBack, onQuestionClick, onAskClick, initialTa
                             <h4 className="text-sm font-bold text-white hover:text-primary-300 truncate mb-1">{q.title}</h4>
                             <p className="text-[10px] text-gray-500 font-sans">Category: {q.category?.name} • Asked by: {q.author?.name || q.author?.username} • {new Date(q.createdAt).toLocaleDateString()}</p>
                           </div>
-                          <ChevronRight size={16} className="text-gray-500 shrink-0" />
+                          
+                          <div className="flex items-center gap-3 shrink-0">
+                            <button
+                              onClick={(e) => handleHelpfulVote(e, q._id)}
+                              className={`flex items-center gap-1.5 px-3 py-1.5 rounded-full text-[10px] font-bold uppercase tracking-wider transition-all duration-200 border ${
+                                q.helpfulVotes?.includes(currentUser?._id)
+                                  ? "bg-primary-500/20 text-primary-400 border-primary-500/30"
+                                  : "bg-surface text-gray-400 border-white/5 hover:border-white/20 hover:text-white"
+                              }`}
+                            >
+                              <ThumbsUp size={12} className={q.helpfulVotes?.includes(currentUser?._id) ? "fill-current" : ""} />
+                              Helpful ({q.helpfulVotesCount || 0})
+                            </button>
+                            <ChevronRight size={16} className="text-gray-500" />
+                          </div>
                         </div>
                       ))}
                     </div>

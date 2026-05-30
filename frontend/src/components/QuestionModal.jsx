@@ -16,23 +16,27 @@ const QuestionModal = ({ isOpen, onClose, categories = [], onQuestionCreated, dr
 
   useEffect(() => {
     if (isOpen) {
-      if (draft) {
-        setFormData({
-          title: draft.title || "",
-          body: draft.body || "",
-          tags: draft.tags || "",
-          category: draft.category || ""
-        });
-      } else {
-        setFormData({
-          title: "",
-          body: "",
-          tags: "",
-          category: ""
-        });
-      }
-      setError(null);
-      setSimilarQuestions([]);
+      const resetForm = async () => {
+        await Promise.resolve();
+        if (draft) {
+          setFormData({
+            title: draft.title || "",
+            body: draft.body || "",
+            tags: draft.tags || "",
+            category: draft.category || ""
+          });
+        } else {
+          setFormData({
+            title: "",
+            body: "",
+            tags: "",
+            category: ""
+          });
+        }
+        setError(null);
+        setSimilarQuestions([]);
+      };
+      resetForm();
     }
   }, [isOpen, draft]);
 

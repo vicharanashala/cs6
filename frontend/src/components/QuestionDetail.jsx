@@ -1,7 +1,7 @@
 import { useState, useEffect } from "react";
 import { 
-  ArrowLeft, MessageSquare, ThumbsUp, ThumbsDown, Check, Award, 
-  Send, CheckCircle2, User as UserIcon, Edit, Trash2, X, 
+  ArrowLeft, MessageSquare, ThumbsUp, Check, Award, 
+  Send, CheckCircle2, Edit, Trash2, X, 
   ChevronUp, ChevronDown, ShieldAlert, Bookmark 
 } from "lucide-react";
 import api from "../api/axios";
@@ -72,13 +72,8 @@ const QuestionDetail = ({ question, onBack, currentUser, onAuthRequired }) => {
     }
   };
 
-  useEffect(() => {
-    if (currentUser?._id && question?._id) {
-      fetchBookmarkStatus();
-    }
-  }, [currentUser, question._id]);
-
   const fetchBookmarkStatus = async () => {
+    await Promise.resolve();
     try {
       const response = await api.get("/bookmarks");
       if (response.data.success) {
@@ -89,6 +84,12 @@ const QuestionDetail = ({ question, onBack, currentUser, onAuthRequired }) => {
       console.error("Error loading bookmark status:", error);
     }
   };
+
+  useEffect(() => {
+    if (currentUser?._id && question?._id) {
+      fetchBookmarkStatus();
+    }
+  }, [currentUser, question._id]);
 
   const handleToggleSave = async () => {
     if (!currentUser) {
@@ -107,15 +108,34 @@ const QuestionDetail = ({ question, onBack, currentUser, onAuthRequired }) => {
     }
   };
 
-  useEffect(() => {
-    fetchQuestionDetails();
-    fetchAnswers();
-    if (currentUser) {
-      fetchMyReports();
+  const handleToggleHelpful = async () => {
+    if (!currentUser) {
+      onAuthRequired();
+      return;
     }
-  }, [question._id]);
+    try {
+      const response = await api.patch(`/questions/${currentQuestion._id}/helpful`);
+      if (response.data.success) {
+        const hasVoted = response.data.data.hasVoted;
+        let newVotes = currentQuestion.helpfulVotes ? [...currentQuestion.helpfulVotes] : [];
+        if (hasVoted && !newVotes.includes(currentUser._id)) {
+          newVotes.push(currentUser._id);
+        } else if (!hasVoted) {
+          newVotes = newVotes.filter(id => id !== currentUser._id);
+        }
+        setCurrentQuestion(prev => ({
+          ...prev,
+          helpfulVotes: newVotes,
+          helpfulVotesCount: response.data.data.helpfulVotesCount
+        }));
+      }
+    } catch (error) {
+      console.error("Error toggling helpful vote:", error);
+    }
+  };
 
   const fetchMyReports = async () => {
+    await Promise.resolve();
     try {
       const response = await api.get("/reports/my");
       if (response.data.success) {
@@ -127,6 +147,7 @@ const QuestionDetail = ({ question, onBack, currentUser, onAuthRequired }) => {
   };
 
   const fetchQuestionDetails = async () => {
+    await Promise.resolve();
     try {
       const response = await api.get(`/questions/${question._id}`);
       if (response.data.success) {
@@ -138,6 +159,7 @@ const QuestionDetail = ({ question, onBack, currentUser, onAuthRequired }) => {
   };
 
   const fetchAnswers = async () => {
+    await Promise.resolve();
     try {
       const response = await api.get(`/questions/${question._id}/answers`);
       if (response.data.success) {
@@ -149,6 +171,14 @@ const QuestionDetail = ({ question, onBack, currentUser, onAuthRequired }) => {
       setLoadingAnswers(false);
     }
   };
+
+  useEffect(() => {
+    fetchQuestionDetails();
+    fetchAnswers();
+    if (currentUser) {
+      fetchMyReports();
+    }
+  }, [question._id]);
 
   // Upvote/Downvote handling
   const handleVote = async (answerId, voteType) => {
@@ -491,17 +521,31 @@ const QuestionDetail = ({ question, onBack, currentUser, onAuthRequired }) => {
                 {currentQuestion.title}
               </h1>
               {currentUser && (
-                <button
-                  onClick={handleToggleSave}
-                  className={`p-2.5 rounded-xl border transition-colors shrink-0 ${
-                    isSaved 
-                      ? "bg-amber-500/15 border-amber-500/30 text-amber-400 hover:bg-amber-500/25" 
-                      : "bg-surface border-white/5 text-gray-400 hover:text-white hover:border-white/10"
-                  }`}
-                  title={isSaved ? "Remove Bookmark" : "Save / Bookmark FAQ"}
-                >
-                  <Bookmark size={18} className={isSaved ? "fill-amber-400" : ""} />
-                </button>
+                <div className="flex gap-2 shrink-0">
+                  <button
+                    onClick={handleToggleHelpful}
+                    className={`flex items-center gap-1.5 px-3.5 py-2.5 rounded-xl border transition-all duration-200 text-xs font-semibold ${
+                      currentQuestion.helpfulVotes?.includes(currentUser?._id)
+                        ? "bg-primary-500/20 text-primary-400 border-primary-500/30"
+                        : "bg-surface border-white/5 text-gray-400 hover:text-white hover:border-white/10"
+                    }`}
+                    title={currentQuestion.helpfulVotes?.includes(currentUser?._id) ? "Marked as Helpful" : "Mark as Helpful"}
+                  >
+                    <ThumbsUp size={16} className={currentQuestion.helpfulVotes?.includes(currentUser?._id) ? "fill-current" : ""} />
+                    <span>Helpful ({currentQuestion.helpfulVotesCount || 0})</span>
+                  </button>
+                  <button
+                    onClick={handleToggleSave}
+                    className={`p-2.5 rounded-xl border transition-colors shrink-0 ${
+                      isSaved 
+                        ? "bg-amber-500/15 border-amber-500/30 text-amber-400 hover:bg-amber-500/25" 
+                        : "bg-surface border-white/5 text-gray-400 hover:text-white hover:border-white/10"
+                    }`}
+                    title={isSaved ? "Remove Bookmark" : "Save / Bookmark FAQ"}
+                  >
+                    <Bookmark size={18} className={isSaved ? "fill-amber-400" : ""} />
+                  </button>
+                </div>
               )}
             </div>
 

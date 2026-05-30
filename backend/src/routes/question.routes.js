@@ -8,10 +8,11 @@ import {
   deleteQuestion, 
   changeQuestionStatus, 
   promoteQuestionToFAQ, 
-  revertFAQ, 
   getFAQs, 
   getSimilarQuestions,
-  getDuplicateQuestions
+  getDuplicateQuestions,
+  toggleHelpfulVote,
+  revertFAQ
 } from "../controllers/questions.controller.js";
 import { unifiedSearch } from "../controllers/search.controller.js";
 import { validateRequest } from "../middlewares/validate.js";
@@ -47,6 +48,9 @@ router.post(
   validateRequest,
   createQuestion
 );
+
+// Helpful vote route
+router.patch("/:id/helpful", authMiddleware, toggleHelpfulVote);
 
 // Ownership / privilege modifying routes
 router.patch(

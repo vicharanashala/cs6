@@ -63,6 +63,14 @@ const questionSchema = new mongoose.Schema({
   embedding: {
     type: [Number],
     default: undefined
+  },
+  helpfulVotes: [{
+    type: mongoose.Schema.Types.ObjectId,
+    ref: 'User'
+  }],
+  helpfulVotesCount: {
+    type: Number,
+    default: 0
   }
 }, { timestamps: true });
 

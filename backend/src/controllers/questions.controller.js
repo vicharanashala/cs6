@@ -49,6 +49,8 @@ export const getQuestions = async (req, res, next) => {
       sortConfig = { views: -1, _id: -1 };
     } else if (sort === 'unanswered') {
       query.linkedBestAnswerId = null;
+    } else if (sort === 'helpful') {
+      sortConfig = { helpfulVotesCount: -1, _id: -1 };
     }
 
     const limitNum = parseInt(limit, 10) || 20;
@@ -260,6 +262,43 @@ export const getQuestionById = async (req, res, next) => {
     return res.status(200).json({
       success: true,
       data: question
+    });
+  } catch (error) {
+    next(error);
+  }
+};
+
+export const toggleHelpfulVote = async (req, res, next) => {
+  try {
+    const { id } = req.params;
+    const userId = req.user._id;
+
+    const question = await Question.findById(id);
+    if (!question) {
+      return res.status(404).json({
+        success: false,
+        error: { code: 'NOT_FOUND', message: 'Question not found' }
+      });
+    }
+
+    const voteIndex = question.helpfulVotes.findIndex(id => id.toString() === userId.toString());
+    if (voteIndex === -1) {
+      // Add vote
+      question.helpfulVotes.push(userId);
+    } else {
+      // Remove vote
+      question.helpfulVotes.splice(voteIndex, 1);
+    }
+    
+    question.helpfulVotesCount = question.helpfulVotes.length;
+    await question.save();
+
+    return res.status(200).json({
+      success: true,
+      data: {
+        helpfulVotesCount: question.helpfulVotesCount,
+        hasVoted: voteIndex === -1 // true if we just added it
+      }
     });
   } catch (error) {
     next(error);
