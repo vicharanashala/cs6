@@ -4,11 +4,12 @@ import api from "../api/axios";
 
 const QuestionModal = ({ isOpen, onClose, categories = [], onQuestionCreated, draft, currentUser, onQuestionClick }) => {
   const [formData, setFormData] = useState({
-    title: "",
-    body: "",
-    tags: "",
-    category: ""
+    title: draft?.title || "",
+    body: draft?.body || "",
+    tags: draft?.tags?.join(", ") || "",
+    category: draft?.category?._id || draft?.category || ""
   });
+  const [newCategoryName, setNewCategoryName] = useState("");
   const [error, setError] = useState(null);
   const [loading, setLoading] = useState(false);
   const [similarQuestions, setSimilarQuestions] = useState([]);
@@ -124,6 +125,30 @@ const QuestionModal = ({ isOpen, onClose, categories = [], onQuestionCreated, dr
     }
 
     try {
+      let categoryId = formData.category;
+
+      if (categoryId === "create_new") {
+        if (!newCategoryName.trim()) {
+          setError({ message: "Please provide a name for the new category." });
+          setLoading(false);
+          return;
+        }
+        
+        const token = localStorage.getItem("token");
+        const catRes = await api.post("/categories", 
+          { name: newCategoryName.trim() },
+          { headers: { Authorization: `Bearer ${token}` } }
+        );
+        
+        if (catRes.data.success) {
+          categoryId = catRes.data.data._id;
+        } else {
+          setError({ message: "Failed to create category." });
+          setLoading(false);
+          return;
+        }
+      }
+
       const parsedTags = formData.tags
         .split(",")
         .map(t => t.trim())
@@ -133,7 +158,7 @@ const QuestionModal = ({ isOpen, onClose, categories = [], onQuestionCreated, dr
         title: formData.title,
         body: formData.body,
         tags: parsedTags,
-        category: formData.category
+        category: categoryId
       };
 
       const token = localStorage.getItem("token");
@@ -152,6 +177,7 @@ const QuestionModal = ({ isOpen, onClose, categories = [], onQuestionCreated, dr
         onClose();
         // Reset form
         setFormData({ title: "", body: "", tags: "", category: "" });
+        setNewCategoryName("");
       }
     } catch (err) {
       console.error(err);
@@ -237,8 +263,28 @@ const QuestionModal = ({ isOpen, onClose, categories = [], onQuestionCreated, dr
                   {cat.name}
                 </option>
               ))}
+              <option value="create_new" className="text-primary-400 bg-surface-light font-bold">
+                + Create another category...
+              </option>
             </select>
           </div>
+
+          {formData.category === "create_new" && (
+            <div className="animate-in slide-in-from-top-2">
+              <label className="block text-xs font-semibold text-gray-400 uppercase mb-1.5">
+                New Category Name <span className="text-red-400">*</span>
+              </label>
+              <input
+                type="text"
+                value={newCategoryName}
+                onChange={(e) => setNewCategoryName(e.target.value)}
+                placeholder="Enter custom category name..."
+                required
+                maxLength={60}
+                className="w-full rounded-lg border border-primary-500/50 bg-primary-500/10 py-2.5 px-3 text-sm text-white focus:border-primary-500 focus:outline-none"
+              />
+            </div>
+          )}
 
           <div>
             <label className="block text-xs font-semibold text-gray-400 uppercase mb-1.5">

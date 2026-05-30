@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import api from '../api/axios';
-import { Plus, Loader2, FolderPlus, FileText, Trash2, Edit3, X, Save } from 'lucide-react';
+import { Plus, Loader2, FolderPlus, FileText, Trash2, Edit3, X, Save, Check } from 'lucide-react';
 
 const CategoryManagement = () => {
   const [categories, setCategories] = useState([]);
@@ -22,7 +22,7 @@ const CategoryManagement = () => {
   const fetchCategories = async () => {
     try {
       setIsLoading(true);
-      const res = await api.get('/categories');
+      const res = await api.get('/categories/admin/all');
       if (res.data.success) {
         setCategories(res.data.data);
       }
@@ -110,6 +110,23 @@ const CategoryManagement = () => {
       }
     } catch (err) {
       setError(err.response?.data?.error?.message || 'Failed to delete category');
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
+  const handleApproveClick = async (catId) => {
+    setIsSubmitting(true);
+    setError(null);
+    setSuccess(null);
+    try {
+      const res = await api.patch(`/categories/${catId}`, { isApproved: true });
+      if (res.data.success) {
+        setSuccess(`Category approved!`);
+        fetchCategories();
+      }
+    } catch (err) {
+      setError(err.response?.data?.error?.message || 'Failed to approve category');
     } finally {
       setIsSubmitting(false);
     }
@@ -258,7 +275,18 @@ const CategoryManagement = () => {
                         <FileText size={18} />
                       </div>
                       <div>
-                        <h4 className="text-sm font-bold text-white mb-1 group-hover:text-primary-300 transition-colors">{cat.name}</h4>
+                        <div className="flex items-center gap-2 mb-1">
+                          <h4 className="text-sm font-bold text-white group-hover:text-primary-300 transition-colors">{cat.name}</h4>
+                          {cat.isApproved === false ? (
+                            <span className="px-2 py-0.5 rounded-full bg-amber-500/10 text-amber-400 text-[10px] font-bold uppercase tracking-wider border border-amber-500/20">
+                              Pending
+                            </span>
+                          ) : (
+                            <span className="px-2 py-0.5 rounded-full bg-emerald-500/10 text-emerald-400 text-[10px] font-bold uppercase tracking-wider border border-emerald-500/20">
+                              Approved
+                            </span>
+                          )}
+                        </div>
                         <p className="text-xs text-gray-400 max-w-xl leading-relaxed">{cat.description || "No description provided."}</p>
                         <div className="mt-3 flex items-center gap-4 text-[10px] font-semibold text-gray-500 uppercase tracking-wider">
                           <span>ID: {cat._id.slice(-6)}</span>
@@ -268,6 +296,15 @@ const CategoryManagement = () => {
                       </div>
                     </div>
                     <div className="flex items-center gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
+                      {cat.isApproved === false && (
+                        <button 
+                          onClick={() => handleApproveClick(cat._id)}
+                          className="p-1.5 rounded-lg bg-emerald-500/10 text-emerald-400 hover:bg-emerald-500/20 hover:text-emerald-300 transition-colors"
+                          title="Approve Category"
+                        >
+                          <Check size={16} />
+                        </button>
+                      )}
                       <button 
                         onClick={() => handleEditClick(cat)}
                         className="p-1.5 rounded-lg bg-blue-500/10 text-blue-400 hover:bg-blue-500/20 hover:text-blue-300 transition-colors"

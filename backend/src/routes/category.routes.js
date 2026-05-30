@@ -1,6 +1,6 @@
 import { Router } from "express";
 import { body } from "express-validator";
-import { getCategories, getCategoryById, createCategory, editCategory, deleteCategory } from "../controllers/category.controller.js";
+import { getCategories, getAdminCategories, getCategoryById, createCategory, editCategory, deleteCategory } from "../controllers/category.controller.js";
 import { validateRequest } from "../middlewares/validate.js";
 import authMiddleware from "../middlewares/authMiddleware.js";
 import { requireRole } from "../middlewares/roleMiddleware.js";
@@ -12,10 +12,12 @@ router.get("/", getCategories);
 router.get("/:id", getCategoryById);
 
 // Admin-only routes
+router.get("/admin/all", authMiddleware, requireRole("admin"), getAdminCategories);
+
+// Authenticated user route
 router.post(
   "/",
   authMiddleware,
-  requireRole("admin"),
   [
     body("name").trim().isLength({ min: 2, max: 60 }).withMessage("Name must be between 2 and 60 characters"),
     body("description").optional().trim().isLength({ max: 200 }).withMessage("Description cannot exceed 200 characters")

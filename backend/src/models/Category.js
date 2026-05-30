@@ -13,6 +13,10 @@ const categorySchema = new mongoose.Schema({
     type: String,
     maxlength: 200,
     trim: true
+  },
+  isApproved: {
+    type: Boolean,
+    default: false
   }
 }, { timestamps: true });
 

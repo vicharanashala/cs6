@@ -5,6 +5,11 @@ export const getCategories = async (req, res, next) => {
   try {
     const categories = await Category.aggregate([
       {
+        $match: {
+          isApproved: { $ne: false } // Only approved or legacy categories
+        }
+      },
+      {
         $lookup: {
           from: 'questions',
           localField: '_id',
@@ -16,6 +21,46 @@ export const getCategories = async (req, res, next) => {
         $project: {
           name: 1,
           description: 1,
+          createdAt: 1,
+          updatedAt: 1,
+          questionCount: {
+            $size: {
+              $filter: {
+                input: '$questions',
+                as: 'q',
+                cond: { $ne: ['$$q.status', 'deleted'] }
+              }
+            }
+          }
+        }
+      }
+    ]);
+
+    return res.status(200).json({
+      success: true,
+      data: categories
+    });
+  } catch (error) {
+    next(error);
+  }
+};
+
+export const getAdminCategories = async (req, res, next) => {
+  try {
+    const categories = await Category.aggregate([
+      {
+        $lookup: {
+          from: 'questions',
+          localField: '_id',
+          foreignField: 'category',
+          as: 'questions'
+        }
+      },
+      {
+        $project: {
+          name: 1,
+          description: 1,
+          isApproved: 1,
           createdAt: 1,
           updatedAt: 1,
           questionCount: {
@@ -85,7 +130,9 @@ export const createCategory = async (req, res, next) => {
       });
     }
 
-    const newCategory = new Category({ name, description });
+    const isApproved = req.user?.role === 'admin' || req.user?.role === 'superadmin';
+
+    const newCategory = new Category({ name, description, isApproved });
     await newCategory.save();
 
     return res.status(201).json({
@@ -100,7 +147,7 @@ export const createCategory = async (req, res, next) => {
 export const editCategory = async (req, res, next) => {
   try {
     const { id } = req.params;
-    const { name, description } = req.body;
+    const { name, description, isApproved } = req.body;
 
     const category = await Category.findById(id);
     if (!category) {
@@ -129,6 +176,10 @@ export const editCategory = async (req, res, next) => {
 
     if (description !== undefined) {
       category.description = description;
+    }
+
+    if (isApproved !== undefined && (req.user?.role === 'admin' || req.user?.role === 'superadmin')) {
+      category.isApproved = isApproved;
     }
 
     await category.save();
