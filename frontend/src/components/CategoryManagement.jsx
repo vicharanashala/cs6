@@ -12,6 +12,9 @@ const CategoryManagement = () => {
   const [newCategory, setNewCategory] = useState({ name: '', description: '' });
   const [isSubmitting, setIsSubmitting] = useState(false);
 
+  const [editingCategoryId, setEditingCategoryId] = useState(null);
+  const [editCategoryData, setEditCategoryData] = useState({ name: '', description: '' });
+
   useEffect(() => {
     fetchCategories();
   }, []);
@@ -52,6 +55,61 @@ const CategoryManagement = () => {
       }
     } catch (err) {
       setError(err.response?.data?.error?.message || 'Failed to create category');
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
+  const handleEditClick = (cat) => {
+    setEditingCategoryId(cat._id);
+    setEditCategoryData({ name: cat.name, description: cat.description || '' });
+    setError(null);
+    setSuccess(null);
+  };
+
+  const handleEditSubmit = async (e) => {
+    e.preventDefault();
+    if (!editCategoryData.name.trim()) return;
+
+    setIsSubmitting(true);
+    setError(null);
+    setSuccess(null);
+
+    try {
+      const res = await api.patch(`/categories/${editingCategoryId}`, {
+        name: editCategoryData.name.trim(),
+        description: editCategoryData.description.trim() || undefined
+      });
+
+      if (res.data.success) {
+        setSuccess(`Category updated successfully!`);
+        setEditingCategoryId(null);
+        fetchCategories();
+      }
+    } catch (err) {
+      setError(err.response?.data?.error?.message || 'Failed to update category');
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
+  const handleDeleteClick = async (catId, catName) => {
+    if (!window.confirm(`Are you sure you want to delete the category "${catName}"? This action cannot be undone.`)) {
+      return;
+    }
+
+    setIsSubmitting(true);
+    setError(null);
+    setSuccess(null);
+
+    try {
+      const res = await api.delete(`/categories/${catId}`);
+      if (res.data.success) {
+        setSuccess(`Category "${catName}" deleted successfully!`);
+        fetchCategories();
+      }
+    } catch (err) {
+      setError(err.response?.data?.error?.message || 'Failed to delete category');
     } finally {
       setIsSubmitting(false);
     }
@@ -155,20 +213,78 @@ const CategoryManagement = () => {
           <div className="divide-y divide-white/5">
             {categories.map((cat) => (
               <div key={cat._id} className="p-5 flex items-start justify-between hover:bg-surface/50 transition-colors group">
-                <div className="flex items-start gap-4">
-                  <div className="mt-0.5 p-2 rounded-lg bg-primary-500/10 text-primary-400">
-                    <FileText size={18} />
-                  </div>
-                  <div>
-                    <h4 className="text-sm font-bold text-white mb-1 group-hover:text-primary-300 transition-colors">{cat.name}</h4>
-                    <p className="text-xs text-gray-400 max-w-xl leading-relaxed">{cat.description || "No description provided."}</p>
-                    <div className="mt-3 flex items-center gap-4 text-[10px] font-semibold text-gray-500 uppercase tracking-wider">
-                      <span>ID: {cat._id.slice(-6)}</span>
-                      <span>•</span>
-                      <span>Created: {new Date(cat.createdAt).toLocaleDateString()}</span>
+                {editingCategoryId === cat._id ? (
+                  <form onSubmit={handleEditSubmit} className="w-full space-y-4">
+                    <div>
+                      <input
+                        type="text"
+                        value={editCategoryData.name}
+                        onChange={(e) => setEditCategoryData({ ...editCategoryData, name: e.target.value })}
+                        className="w-full rounded-xl border border-white/10 bg-surface py-2 px-3 text-sm text-white focus:border-primary-500 focus:outline-none"
+                        maxLength={60}
+                        required
+                      />
                     </div>
-                  </div>
-                </div>
+                    <div>
+                      <textarea
+                        value={editCategoryData.description}
+                        onChange={(e) => setEditCategoryData({ ...editCategoryData, description: e.target.value })}
+                        className="w-full rounded-xl border border-white/10 bg-surface py-2 px-3 text-sm text-white focus:border-primary-500 focus:outline-none h-20 resize-none"
+                        maxLength={200}
+                      />
+                    </div>
+                    <div className="flex justify-end gap-3 pt-2">
+                      <button
+                        type="button"
+                        onClick={() => setEditingCategoryId(null)}
+                        className="text-xs font-semibold text-gray-400 hover:text-white transition-colors"
+                      >
+                        Cancel
+                      </button>
+                      <button
+                        type="submit"
+                        disabled={isSubmitting || !editCategoryData.name.trim()}
+                        className="flex items-center gap-1.5 rounded-lg bg-primary-500 px-4 py-1.5 text-xs font-bold text-white hover:bg-primary-600 disabled:opacity-50 transition-colors"
+                      >
+                        {isSubmitting ? <Loader2 size={14} className="animate-spin" /> : <Save size={14} />}
+                        Save
+                      </button>
+                    </div>
+                  </form>
+                ) : (
+                  <>
+                    <div className="flex items-start gap-4">
+                      <div className="mt-0.5 p-2 rounded-lg bg-primary-500/10 text-primary-400">
+                        <FileText size={18} />
+                      </div>
+                      <div>
+                        <h4 className="text-sm font-bold text-white mb-1 group-hover:text-primary-300 transition-colors">{cat.name}</h4>
+                        <p className="text-xs text-gray-400 max-w-xl leading-relaxed">{cat.description || "No description provided."}</p>
+                        <div className="mt-3 flex items-center gap-4 text-[10px] font-semibold text-gray-500 uppercase tracking-wider">
+                          <span>ID: {cat._id.slice(-6)}</span>
+                          <span>•</span>
+                          <span>Created: {new Date(cat.createdAt).toLocaleDateString()}</span>
+                        </div>
+                      </div>
+                    </div>
+                    <div className="flex items-center gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
+                      <button 
+                        onClick={() => handleEditClick(cat)}
+                        className="p-1.5 rounded-lg bg-blue-500/10 text-blue-400 hover:bg-blue-500/20 hover:text-blue-300 transition-colors"
+                        title="Edit Category"
+                      >
+                        <Edit3 size={16} />
+                      </button>
+                      <button 
+                        onClick={() => handleDeleteClick(cat._id, cat.name)}
+                        className="p-1.5 rounded-lg bg-red-500/10 text-red-400 hover:bg-red-500/20 hover:text-red-300 transition-colors"
+                        title="Delete Category"
+                      >
+                        <Trash2 size={16} />
+                      </button>
+                    </div>
+                  </>
+                )}
               </div>
             ))}
           </div>
