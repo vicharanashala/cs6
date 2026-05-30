@@ -71,6 +71,11 @@ const questionSchema = new mongoose.Schema({
   helpfulVotesCount: {
     type: Number,
     default: 0
+  },
+  lifecycleBucket: {
+    type: String,
+    enum: ['onboarding', 'documentation', 'vibe', 'projects'],
+    default: null
   }
 }, { timestamps: true });
 
@@ -80,6 +85,7 @@ questionSchema.index({ category: 1, status: 1 });
 questionSchema.index({ tags: 1 });
 questionSchema.index({ isFAQ: 1 });
 questionSchema.index({ title: 'text', body: 'text' });
+questionSchema.index({ lifecycleBucket: 1 });
 
 const QuestionModel = mongoose.model('Question', questionSchema);
 mongoose.model('question', questionSchema);

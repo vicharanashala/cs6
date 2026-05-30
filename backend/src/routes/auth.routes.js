@@ -12,6 +12,10 @@ router.post(
     body("username").trim().notEmpty().withMessage("Username is required"),
     body("name").trim().isLength({ min: 2, max: 50 }).withMessage("Name must be between 2 and 50 characters"),
     body("email").trim().isEmail().withMessage("Must be a valid email address"),
+    body("internshipStartDate")
+      .optional({ nullable: true, checkFalsy: true })
+      .isISO8601()
+      .withMessage("Internship start date must be a valid date"),
     body("password")
       .isLength({ min: 8 })
       .withMessage("Password must be at least 8 characters long")

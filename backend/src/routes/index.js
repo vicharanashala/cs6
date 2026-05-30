@@ -13,6 +13,7 @@ import ticketRoutes from "./ticket.routes.js";
 import notificationRoutes from "./notification.routes.js";
 import userRoutes from "./user.routes.js";
 import bookmarkRoutes from "./bookmark.routes.js";
+import cohortRoutes from "./cohort.routes.js";
 
 const router = Router();
 
@@ -28,5 +29,6 @@ router.use("/tickets", ticketRoutes);
 router.use("/notifications", notificationRoutes);
 router.use("/users", userRoutes);
 router.use("/bookmarks", bookmarkRoutes);
+router.use("/cohort-pulse", cohortRoutes);
 
 export default router;

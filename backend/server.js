@@ -14,6 +14,14 @@ const startServer = async () => {
   // Connect to MongoDB first
   await connectDB();
 
+  // Run cohort backfill migration
+  try {
+    const { migrateCohort } = await import("./src/utils/migrateCohort.js");
+    await migrateCohort();
+  } catch (err) {
+    console.error("[Migration] Failed to execute migrateCohort:", err.message);
+  }
+
   // Ensure superadmin account exists
   try {
     const { seedSuperadmin } = await import("./src/utils/seedSuperadmin.js");
