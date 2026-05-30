@@ -10,6 +10,7 @@ import Notification from './Notification.js';
 import AuditLog from './AuditLog.js';
 import RefreshToken from './RefreshToken.js';
 import Bookmark from './Bookmark.js';
+import PasswordResetOTP from './PasswordResetOTP.js';
 
 export {
   User,
@@ -23,5 +24,6 @@ export {
   Notification,
   AuditLog,
   RefreshToken,
-  Bookmark
+  Bookmark,
+  PasswordResetOTP
 };

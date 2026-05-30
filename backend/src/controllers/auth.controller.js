@@ -1,7 +1,10 @@
 import User from "../models/User.js";
 import RefreshToken from "../models/RefreshToken.js";
+import PasswordResetOTP from "../models/PasswordResetOTP.js";
 import jwt from "jsonwebtoken";
 import bcrypt from "bcrypt";
+import crypto from "crypto";
+import { sendOTPEmail } from "../utils/email.js";
 
 const generateAccessToken = (user) => {
   return jwt.sign(
@@ -294,6 +297,223 @@ export const changePassword = async (req, res, next) => {
     return res.status(200).json({
       success: true,
       message: 'Password changed successfully'
+    });
+  } catch (error) {
+    next(error);
+  }
+};
+
+// ─── Forgot Password: Step 1 — Request OTP ────────────────────────────────────
+
+// Simple in-memory rate limiter: max 3 OTP requests per email per hour
+const otpRateLimit = new Map();
+
+export const forgotPassword = async (req, res, next) => {
+  try {
+    const { email } = req.body;
+    const normalizedEmail = email.toLowerCase().trim();
+
+    // Rate limiting check
+    const now = Date.now();
+    const key = `otp:${normalizedEmail}`;
+    const history = otpRateLimit.get(key) || [];
+    const recentRequests = history.filter(ts => now - ts < 3600000); // last hour
+    if (recentRequests.length >= 3) {
+      return res.status(429).json({
+        success: false,
+        error: {
+          code: 'RATE_LIMIT',
+          message: 'Too many OTP requests. Please try again later.'
+        }
+      });
+    }
+
+    // Generic response — never reveal if email exists or not
+    const genericSuccess = {
+      success: true,
+      message: 'If this email is registered, you will receive a password reset code shortly.'
+    };
+
+    // Check if user exists
+    const user = await User.findOne({ email: normalizedEmail });
+    if (!user || user.status === 'deactivated') {
+      // Return success anyway to prevent email enumeration
+      return res.status(200).json(genericSuccess);
+    }
+
+    // Generate 6-digit OTP
+    const otpCode = crypto.randomInt(100000, 999999).toString();
+
+    // Hash the OTP before storing
+    const otpHash = await bcrypt.hash(otpCode, 10);
+
+    // Delete any previous OTPs for this email
+    await PasswordResetOTP.deleteMany({ email: normalizedEmail });
+
+    // Store hashed OTP
+    await PasswordResetOTP.create({
+      email: normalizedEmail,
+      otp: otpHash,
+      expiresAt: new Date(Date.now() + 10 * 60 * 1000) // 10 minutes
+    });
+
+    // Send email
+    const emailSent = await sendOTPEmail(normalizedEmail, otpCode);
+    if (!emailSent) {
+      return res.status(500).json({
+        success: false,
+        error: {
+          code: 'EMAIL_FAILED',
+          message: 'Failed to send OTP email. Please try again.'
+        }
+      });
+    }
+
+    // Update rate limit
+    recentRequests.push(now);
+    otpRateLimit.set(key, recentRequests);
+
+    return res.status(200).json(genericSuccess);
+  } catch (error) {
+    next(error);
+  }
+};
+
+// ─── Forgot Password: Step 2 — Verify OTP ─────────────────────────────────────
+
+export const verifyOTP = async (req, res, next) => {
+  try {
+    const { email, otp } = req.body;
+    const normalizedEmail = email.toLowerCase().trim();
+
+    const record = await PasswordResetOTP.findOne({
+      email: normalizedEmail,
+      used: false
+    });
+
+    if (!record) {
+      return res.status(400).json({
+        success: false,
+        error: {
+          code: 'INVALID_OTP',
+          message: 'No active OTP found. Please request a new one.'
+        }
+      });
+    }
+
+    // Check expiry
+    if (record.expiresAt < new Date()) {
+      await PasswordResetOTP.deleteOne({ _id: record._id });
+      return res.status(400).json({
+        success: false,
+        error: {
+          code: 'OTP_EXPIRED',
+          message: 'OTP has expired. Please request a new one.'
+        }
+      });
+    }
+
+    // Brute-force protection
+    if (record.attempts >= 5) {
+      await PasswordResetOTP.deleteOne({ _id: record._id });
+      return res.status(400).json({
+        success: false,
+        error: {
+          code: 'OTP_MAX_ATTEMPTS',
+          message: 'Too many incorrect attempts. Please request a new OTP.'
+        }
+      });
+    }
+
+    // Verify OTP
+    const isValid = await bcrypt.compare(otp, record.otp);
+    if (!isValid) {
+      record.attempts += 1;
+      await record.save();
+      return res.status(400).json({
+        success: false,
+        error: {
+          code: 'INVALID_OTP',
+          message: `Incorrect OTP. ${5 - record.attempts} attempt(s) remaining.`
+        }
+      });
+    }
+
+    // Mark OTP as used
+    record.used = true;
+    await record.save();
+
+    // Generate a short-lived reset token (15 min)
+    const resetToken = jwt.sign(
+      { email: normalizedEmail, purpose: 'password-reset' },
+      process.env.JWT_SECRET,
+      { expiresIn: '15m' }
+    );
+
+    return res.status(200).json({
+      success: true,
+      data: { resetToken },
+      message: 'OTP verified successfully. You can now reset your password.'
+    });
+  } catch (error) {
+    next(error);
+  }
+};
+
+// ─── Forgot Password: Step 3 — Reset Password ─────────────────────────────────
+
+export const resetPassword = async (req, res, next) => {
+  try {
+    const { resetToken, newPassword } = req.body;
+
+    // Verify the reset token
+    let decoded;
+    try {
+      decoded = jwt.verify(resetToken, process.env.JWT_SECRET);
+    } catch (err) {
+      return res.status(400).json({
+        success: false,
+        error: {
+          code: 'INVALID_TOKEN',
+          message: 'Reset token is invalid or has expired. Please restart the process.'
+        }
+      });
+    }
+
+    if (decoded.purpose !== 'password-reset') {
+      return res.status(400).json({
+        success: false,
+        error: {
+          code: 'INVALID_TOKEN',
+          message: 'Invalid reset token.'
+        }
+      });
+    }
+
+    const user = await User.findOne({ email: decoded.email });
+    if (!user) {
+      return res.status(404).json({
+        success: false,
+        error: {
+          code: 'NOT_FOUND',
+          message: 'User not found.'
+        }
+      });
+    }
+
+    // Hash new password and save
+    user.passwordHash = await bcrypt.hash(newPassword, 10);
+    await user.save();
+
+    // Clean up: delete all OTPs for this email
+    await PasswordResetOTP.deleteMany({ email: decoded.email });
+
+    // Invalidate all existing refresh tokens (force re-login on all devices)
+    await RefreshToken.deleteMany({ userId: user._id });
+
+    return res.status(200).json({
+      success: true,
+      message: 'Password has been reset successfully. You can now login with your new password.'
     });
   } catch (error) {
     next(error);
