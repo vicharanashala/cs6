@@ -63,13 +63,6 @@ const MyProfile = ({ currentUser, onBack, onQuestionClick, onAskClick, initialTa
 
   const [loadingData, setLoadingData] = useState(false);
   const [cohortData, setCohortData] = useState(null);
-  const [simulatedDay, setSimulatedDay] = useState("");
-
-  useEffect(() => {
-    if (activeTab === "cohort-pulse") {
-      loadTabContent();
-    }
-  }, [simulatedDay]);
 
   const handleHelpfulVoteLocal = async (e, qId) => {
     e.stopPropagation();
@@ -384,7 +377,7 @@ const MyProfile = ({ currentUser, onBack, onQuestionClick, onAskClick, initialTa
       } else if (activeTab === "notifications") {
         await fetchNotifications();
       } else if (activeTab === "cohort-pulse") {
-        const response = await api.get(`/cohort-pulse?simulateDay=${simulatedDay}`);
+        const response = await api.get("/cohort-pulse");
         if (response.data.success) {
           setCohortData(response.data.data);
         }
@@ -1285,7 +1278,7 @@ const MyProfile = ({ currentUser, onBack, onQuestionClick, onAskClick, initialTa
             {activeTab === "cohort-pulse" && (
               <div className="space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-500">
                 
-                {/* Header and Simulator widget */}
+                {/* Header */}
                 <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-6 border-b border-white/5 pb-6">
                   <div>
                     <h2 className="text-2xl font-bold text-white mb-2 flex items-center gap-2">
@@ -1296,105 +1289,15 @@ const MyProfile = ({ currentUser, onBack, onQuestionClick, onAskClick, initialTa
                       Personalized lifecycle dashboard tracking trending FAQs, common searches, and rising community queries.
                     </p>
                   </div>
-                  
-                  {/* Simulation controller */}
-                  <div className="bg-surface-light border border-white/5 rounded-xl p-4 flex flex-col gap-2 min-w-[280px]">
-                    <div className="flex justify-between items-center text-xs font-semibold text-gray-400">
-                      <span>Simulate Internship Day</span>
-                      <span className="text-primary-400 font-bold bg-primary-500/10 px-2 py-0.5 rounded border border-primary-500/20">
-                        {simulatedDay === "" 
-                          ? `Natural Day (${cohortData?.phaseInfo?.currentDay ?? 0})` 
-                          : `Day ${simulatedDay}`}
-                      </span>
+
+                  {cohortData?.phaseInfo && (
+                    <div className="shrink-0 font-sans text-right bg-surface-light border border-white/5 rounded-xl px-4 py-2">
+                      <p className="text-[10px] text-gray-500 uppercase font-semibold">Current Phase</p>
+                      <p className="text-sm font-bold text-primary-400">{cohortData.phaseInfo.name}</p>
+                      <p className="text-xs font-semibold text-gray-400 mt-0.5">Day {cohortData.phaseInfo.currentDay ?? 0}</p>
                     </div>
-                    <div className="flex gap-3 items-center mt-1">
-                      <input 
-                        type="range" 
-                        min="0" 
-                        max="45" 
-                        value={simulatedDay === "" ? (cohortData?.phaseInfo?.currentDay ?? 0) : simulatedDay} 
-                        onChange={(e) => setSimulatedDay(e.target.value)} 
-                        className="flex-1 h-1.5 bg-surface rounded-lg cursor-pointer"
-                        style={{ accentColor: "#3b82f6" }}
-                      />
-                      <button 
-                        onClick={() => setSimulatedDay("")} 
-                        className="text-[10px] font-bold text-gray-400 hover:text-white uppercase transition-colors"
-                        title="Reset to your natural onboarding day"
-                      >
-                        Reset
-                      </button>
-                    </div>
-                  </div>
+                  )}
                 </div>
-
-                {/* Stepper Timeline Visualizer */}
-                {cohortData?.phaseInfo && (
-                  <div className="bg-surface-light border border-white/5 rounded-2xl p-6 shadow-xl">
-                    <div className="grid grid-cols-1 md:grid-cols-4 gap-6 relative select-none">
-                      {[
-                        { key: 'onboarding', name: 'Onboarding', days: '0-3d', desc: 'Portals & NOC' },
-                        { key: 'documentation', name: 'Documentation', days: '4-7d', desc: 'Rosetta & Offer Letter' },
-                        { key: 'vibe', name: 'ViBe Platform', days: '8-14d', desc: 'Coursework & LMS' },
-                        { key: 'projects', name: 'Projects', days: '15+d', desc: 'Teams & Mentors' }
-                      ].map((step, idx, arr) => {
-                        const stepKeys = arr.map(a => a.key);
-                        const currentIdx = stepKeys.indexOf(cohortData.phaseInfo.key);
-                        const isCompleted = idx < currentIdx;
-                        const isActive = idx === currentIdx;
-                        
-                        return (
-                          <div key={step.key} className="flex flex-col items-center text-center relative group">
-                            {/* Connect Line */}
-                            {idx < arr.length - 1 && (
-                              <div className={`hidden md:block absolute top-5 left-[50%] right-[-50%] h-[2px] z-0 ${
-                                idx < currentIdx ? "bg-primary-500" : "bg-white/10"
-                              }`} />
-                            )}
-                            
-                            {/* Node circle */}
-                            <div className={`w-10 h-10 rounded-full flex items-center justify-center font-bold text-xs border relative z-10 transition-all duration-500 ${
-                              isCompleted 
-                                ? "bg-primary-500 text-white border-primary-500 shadow-lg shadow-primary-500/10" 
-                                : isActive 
-                                ? "bg-primary-500/10 text-primary-400 border-primary-500/60 shadow-lg shadow-primary-500/30 animate-pulse" 
-                                : "bg-surface text-gray-500 border-white/10"
-                            }`}>
-                              {isCompleted ? "✓" : idx + 1}
-                            </div>
-                            
-                            {/* Labels */}
-                            <h4 className={`text-xs font-bold mt-3 transition-colors duration-300 ${
-                              isActive ? "text-primary-400 font-extrabold" : isCompleted ? "text-white" : "text-gray-500"
-                            }`}>{step.name}</h4>
-                            <span className="text-[10px] text-gray-500 font-mono mt-0.5">{step.days}</span>
-                            <span className="text-[9px] text-gray-600 mt-1 max-w-[120px] line-clamp-2 leading-relaxed">{step.desc}</span>
-                          </div>
-                        );
-                      })}
-                    </div>
-
-                    {/* Active phase details card */}
-                    <div className="mt-8 border-t border-white/5 pt-6 flex flex-col md:flex-row gap-6 justify-between items-start md:items-center">
-                      <div className="space-y-1">
-                        <div className="flex items-center gap-2">
-                          <span className="text-[10px] font-bold uppercase tracking-wider bg-primary-500/10 text-primary-400 border border-primary-500/20 px-2 py-0.5 rounded">
-                            Current Stage
-                          </span>
-                          <span className="text-sm font-bold text-white">{cohortData.phaseInfo.name}</span>
-                        </div>
-                        <p className="text-xs text-gray-400 max-w-2xl leading-relaxed">
-                          {cohortData.phaseInfo.description}
-                        </p>
-                      </div>
-                      
-                      <div className="shrink-0 font-sans text-right">
-                        <p className="text-[10px] text-gray-500 uppercase font-semibold">Internship Timeline</p>
-                        <p className="text-lg font-black text-white">Day {cohortData.phaseInfo.currentDay ?? 0}</p>
-                      </div>
-                    </div>
-                  </div>
-                )}
 
                 {/* Contextual feed grid */}
                 <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
