@@ -11,7 +11,7 @@ const Navbar = ({ currentUser, onLoginClick, onRegisterClick, onAskClick, onLogo
           className="flex items-center gap-2 group text-left focus:outline-none" 
           id="nav-brand"
         >
-          <span className="flex h-9 w-9 items-center justify-center rounded-lg bg-gradient-to-br from-primary-500 to-indigo-600 text-sm font-bold text-white shadow-lg shadow-primary-500/20 transition-transform group-hover:scale-110">
+          <span className="flex h-9 w-9 items-center justify-center rounded-lg bg-gradient-to-br from-primary-400 to-primary-600 text-sm font-bold text-white shadow-lg shadow-primary-500/20 transition-transform group-hover:scale-110">
             ?
           </span>
           <span className="text-lg font-semibold tracking-tight text-white">
@@ -73,7 +73,7 @@ const Navbar = ({ currentUser, onLoginClick, onRegisterClick, onAskClick, onLogo
               </button>
               <button
                 onClick={onRegisterClick}
-                className="rounded-lg bg-primary-500 hover:bg-primary-600 py-1.5 px-3.5 text-xs font-semibold text-white transition-colors"
+                className="rounded-lg btn-cyan py-1.5 px-3.5 text-xs font-semibold text-white transition-colors"
               >
                 Sign Up
               </button>
