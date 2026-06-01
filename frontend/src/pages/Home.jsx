@@ -26,6 +26,35 @@ const getCategoryMeta = (index) => {
   return meta[index % meta.length];
 };
 
+// Static mapping for category descriptions based on the section name
+const categoryDescriptions = {
+  // Database exact versions
+  "About the internship": "Learn what VINS is, who can apply, internship phases, eligibility, and important participation rules.",
+  "Timing and dates": "Understand internship duration, start-date flexibility, exam-related policies, and key deadlines.",
+  "NOC (No Objection Certificate)": "Everything about obtaining, submitting, verifying, and troubleshooting your NOC requirements.",
+  "Selection, offer letter, and certificate": "Check selection status, accept offers correctly, manage dates, and understand certification policies.",
+  "Work, mentorship, and projects": "Explore project domains, daily expectations, mentor assignments, tools, and work structure.",
+  "Code of conduct — communication channels": "Official communication channels, escalation methods, and important conduct guidelines.",
+  "Interviews Related": "Solutions for interview completion, dashboard status, and interview-related issues.",
+  "Certificate": "Details about certificates, verification, internship credit, recommendations, and delivery format.",
+  "Rosetta — your internship journal": "Learn about the daily reflection journal, submission process, and completion requirements.",
+  "Phase 1 — coursework, Vibe LMS, and live sessions": "Information on mandatory courses, exemptions, registrations, and live learning sessions.",
+  "Yaksha Chat Related": "Help with accessing and using the Yaksha support and guidance system.",
+  "ViBe Platform": "Login help, course access, troubleshooting, proctoring rules, progress tracking, and platform usage.",
+  "Team Formation": "Team creation rules, project allocation, collaboration guidelines, and mentor assignment process.",
+
+  // User alternate versions
+  "About the Internship": "Learn what VINS is, who can apply, internship phases, eligibility, and important participation rules.",
+  "Timing & Dates": "Understand internship duration, start-date flexibility, exam-related policies, and key deadlines.",
+  "Selection, Offer Letter & Certificate": "Check selection status, accept offers correctly, manage dates, and understand certification policies.",
+  "Work, Mentorship & Projects": "Explore project domains, daily expectations, mentor assignments, tools, and work structure.",
+  "Communication & Code of Conduct": "Official communication channels, escalation methods, and important conduct guidelines.",
+  "Interview Related": "Solutions for interview completion, dashboard status, and interview-related issues.",
+  "Rosetta Journal": "Learn about the daily reflection journal, submission process, and completion requirements.",
+  "Phase 1: Coursework & Live Sessions": "Information on mandatory courses, exemptions, registrations, and live learning sessions.",
+  "Yaksha Chat": "Help with accessing and using the Yaksha support and guidance system."
+};
+
 const Home = ({ categories = [], onCategorySelect, onAskClick, onQuestionSelect }) => {
   const [searchQuery, setSearchQuery] = useState("");
   const [searchResults, setSearchResults] = useState({ faqs: [], questions: [] });
@@ -276,7 +305,7 @@ const Home = ({ categories = [], onCategorySelect, onAskClick, onQuestionSelect 
                     style={{ backfaceVisibility: "hidden", WebkitBackfaceVisibility: "hidden", transform: "rotateY(180deg)" }}
                   >
                     <p className="text-xs font-medium text-slate-300 leading-relaxed line-clamp-5">
-                      {cat.description}
+                      {cat.description || categoryDescriptions[cat.name] || `Official FAQs for the section: ${cat.name}`}
                     </p>
                     <div className="mt-4 flex items-center gap-1 text-[10px] font-semibold text-primary-400">
                       <span>View FAQs</span>

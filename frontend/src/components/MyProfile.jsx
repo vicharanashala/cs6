@@ -18,6 +18,22 @@ const categoryMap = {
   other: "Other"
 };
 
+const categoryDescriptions = {
+  "About the Internship": "Learn what VINS is, who can apply, internship phases, eligibility, and important participation rules.",
+  "Timing & Dates": "Understand internship duration, start-date flexibility, exam-related policies, and key deadlines.",
+  "NOC (No Objection Certificate)": "Everything about obtaining, submitting, verifying, and troubleshooting your NOC requirements.",
+  "Selection, Offer Letter & Certificate": "Check selection status, accept offers correctly, manage dates, and understand certification policies.",
+  "Work, Mentorship & Projects": "Explore project domains, daily expectations, mentor assignments, tools, and work structure.",
+  "Communication & Code of Conduct": "Official communication channels, escalation methods, and important conduct guidelines.",
+  "Interview Related": "Solutions for interview completion, dashboard status, and interview-related issues.",
+  "Certificate": "Details about certificates, verification, internship credit, recommendations, and delivery format.",
+  "Rosetta Journal": "Learn about the daily reflection journal, submission process, and completion requirements.",
+  "Phase 1: Coursework & Live Sessions": "Information on mandatory courses, exemptions, registrations, and live learning sessions.",
+  "Yaksha Chat": "Help with accessing and using the Yaksha support and guidance system.",
+  "ViBe Platform": "Login help, course access, troubleshooting, proctoring rules, progress tracking, and platform usage.",
+  "Team Formation": "Team creation rules, project allocation, collaboration guidelines, and mentor assignment process."
+};
+
 const statusMap = {
   open: "Open",
   in_progress: "In Progress",
@@ -1169,7 +1185,7 @@ const MyProfile = ({ currentUser, onBack, onQuestionClick, onAskClick, initialTa
                               </div>
                               {/* Back Face */}
                               <div className="absolute inset-0 flex flex-col items-start justify-center p-4 rounded-xl bg-gradient-to-br from-slate-800 to-slate-900" style={{ backfaceVisibility: "hidden", WebkitBackfaceVisibility: "hidden", transform: "rotateY(180deg)" }}>
-                                <p className="text-xs font-medium text-slate-300 leading-relaxed line-clamp-5">{cat.description}</p>
+                                <p className="text-xs font-medium text-slate-300 leading-relaxed line-clamp-5">{cat.description || categoryDescriptions[cat.name] || `Official FAQs for the section: ${cat.name}`}</p>
                                 <div className="mt-4 flex items-center gap-1 text-[10px] font-semibold text-primary-400">
                                   <span>View FAQs</span>
                                   <ArrowRight size={12} />
@@ -1180,14 +1196,10 @@ const MyProfile = ({ currentUser, onBack, onQuestionClick, onAskClick, initialTa
                         })}
                       </div>
                     </section>
-
-
                   </>
                 )}
               </div>
-            )}
-            
-           {/* POPULAR SUB-VIEW */}
+            )}           {/* POPULAR SUB-VIEW */}
             {activeTab === "popular" && (
               <div className="space-y-6">
                 <div>
