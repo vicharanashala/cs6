@@ -7,6 +7,7 @@ import { getLifecycleBucket } from './cohort.controller.js';
 import { checkDuplicate, findSimilarQuestions, findDuplicateQuestions } from '../services/duplicate.service.js';
 import { moderateText } from '../utils/moderation.js';
 import { generateEmbedding } from '../utils/embeddings.js';
+import { logSecurityEvent } from '../utils/audit.js';
 
 export const getQuestions = async (req, res, next) => {
   try {
@@ -192,6 +193,8 @@ export const createQuestion = async (req, res, next) => {
       newQuestion.moderationStatus = 'rejected';
       await newQuestion.save();
 
+      await logSecurityEvent({ req, action: 'ai_moderation_blocked', targetType: 'question', targetId: newQuestion._id, details: { reason: modResult.reason, title } });
+
       // Create high-severity AI report
       await Report.create({
         targetType: 'question',
@@ -215,6 +218,8 @@ export const createQuestion = async (req, res, next) => {
       newQuestion.status = 'flagged';
       newQuestion.moderationStatus = 'flagged';
       await newQuestion.save();
+
+      await logSecurityEvent({ req, action: 'ai_moderation_flagged', targetType: 'question', targetId: newQuestion._id, details: { reason: modResult.reason, title } });
 
       // Create medium-severity AI report
       await Report.create({
@@ -362,9 +367,9 @@ export const deleteQuestion = async (req, res, next) => {
 
     // Log action if deleted by Admin/Mod
     if (req.user.role !== 'user') {
-      await AuditLog.create({
+      await logSecurityEvent({
+        req,
         action: 'delete_question',
-        performedBy: req.user.userId,
         targetType: 'question',
         targetId: question._id,
         details: { title: question.title }
@@ -408,9 +413,9 @@ export const changeQuestionStatus = async (req, res, next) => {
       });
     }
 
-    await AuditLog.create({
+    await logSecurityEvent({
+      req,
       action: 'change_question_status',
-      performedBy: req.user.userId,
       targetType: 'question',
       targetId: question._id,
       details: { status }
@@ -456,9 +461,9 @@ export const promoteQuestionToFAQ = async (req, res, next) => {
     question.acceptedAnswerId = question.linkedBestAnswerId;
     await question.save();
 
-    await AuditLog.create({
+    await logSecurityEvent({
+      req,
       action: 'promote_faq',
-      performedBy: req.user.userId,
       targetType: 'question',
       targetId: question._id,
       details: { title: question.title }
@@ -493,9 +498,9 @@ export const revertFAQ = async (req, res, next) => {
       });
     }
 
-    await AuditLog.create({
+    await logSecurityEvent({
+      req,
       action: 'revert_faq',
-      performedBy: req.user.userId,
       targetType: 'question',
       targetId: question._id,
       details: { title: question.title }

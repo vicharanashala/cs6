@@ -2,6 +2,7 @@ import User from '../models/User.js';
 import Question from '../models/Question.js';
 import Answer from '../models/Answer.js';
 import AuditLog from '../models/AuditLog.js';
+import { logSecurityEvent } from '../utils/audit.js';
 
 export const getUserProfile = async (req, res, next) => {
   try {
@@ -271,9 +272,9 @@ export const changeUserRole = async (req, res, next) => {
     user.role = role;
     await user.save();
 
-    await AuditLog.create({
+    await logSecurityEvent({
+      req,
       action: 'change_user_role',
-      performedBy: req.user.userId,
       targetType: 'user',
       targetId: user._id,
       details: { role }
@@ -310,9 +311,9 @@ export const deactivateUser = async (req, res, next) => {
     user.status = 'deactivated';
     await user.save();
 
-    await AuditLog.create({
+    await logSecurityEvent({
+      req,
       action: 'deactivate_user',
-      performedBy: req.user.userId,
       targetType: 'user',
       targetId: user._id,
       details: { username: user.username }

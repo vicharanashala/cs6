@@ -9,10 +9,11 @@ import {
   downvoteAnswer,
   markAsBestAnswer 
 } from "../controllers/answers.controller.js";
-import { validateRequest } from "../middlewares/validate.js";
+import { validateRequest, validateZod } from "../middlewares/validate.js";
 import authMiddleware, { optionalAuthMiddleware } from "../middlewares/authMiddleware.js";
 import { requireOwnerOrRole, requireRole } from "../middlewares/roleMiddleware.js";
 import Answer from "../models/Answer.js";
+import { createAnswerSchema } from "../validation/schemas.js";
 
 // mergeParams: true allows accessing req.params.id (Question ID) from nested routes
 const router = Router({ mergeParams: true });
@@ -22,10 +23,7 @@ router.get("/", optionalAuthMiddleware, getAnswersForQuestion);
 router.post(
   "/",
   authMiddleware,
-  [
-    body("body").trim().isLength({ min: 30, max: 2000 }).withMessage("Answer body must be between 30 and 2000 characters")
-  ],
-  validateRequest,
+  validateZod(createAnswerSchema),
   createAnswer
 );
 

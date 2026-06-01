@@ -4,6 +4,7 @@ import Answer from '../models/Answer.js';
 import Notification from '../models/Notification.js';
 import AuditLog from '../models/AuditLog.js';
 import User from '../models/User.js';
+import { logSecurityEvent } from '../utils/audit.js';
 
 export const getFlaggedQueue = async (req, res, next) => {
   try {
@@ -139,9 +140,9 @@ export const approveItem = async (req, res, next) => {
       });
     }
 
-    await AuditLog.create({
+    await logSecurityEvent({
+      req,
       action: 'approve_flagged',
-      performedBy: req.user.userId,
       targetType,
       targetId: target._id,
       details: { targetType }
@@ -206,9 +207,9 @@ export const rejectItem = async (req, res, next) => {
       });
     }
 
-    await AuditLog.create({
+    await logSecurityEvent({
+      req,
       action: 'reject_flagged',
-      performedBy: req.user.userId,
       targetType,
       targetId: target._id,
       details: { targetType }
@@ -259,9 +260,9 @@ export const escalateItem = async (req, res, next) => {
       }
     }
 
-    await AuditLog.create({
+    await logSecurityEvent({
+      req,
       action: 'escalate_flagged',
-      performedBy: req.user.userId,
       targetType,
       targetId,
       details: { reportsCount }

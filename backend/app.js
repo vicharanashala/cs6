@@ -5,24 +5,54 @@ import express from "express";
 import cors from "cors";
 import apiRoutes from "./src/routes/index.js";
 import errorHandler from "./src/middlewares/errorHandler.js";
+import { sanitizeMiddleware } from "./src/middlewares/sanitize.js";
+import { csrfProtection } from "./src/middlewares/csrfMiddleware.js";
 
 import rateLimit from "express-rate-limit";
 
 const app = express();
 
+// ─── Security Headers ────────────────────────────────────
+app.use((req, res, next) => {
+  res.setHeader("Content-Security-Policy", "default-src 'self'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' https://fonts.gstatic.com; img-src 'self' data: https://res.cloudinary.com; connect-src 'self' https://api-inference.huggingface.co;");
+  res.setHeader("Strict-Transport-Security", "max-age=31536000; includeSubDomains; preload");
+  res.setHeader("X-Frame-Options", "DENY");
+  res.setHeader("X-Content-Type-Options", "nosniff");
+  res.setHeader("Referrer-Policy", "strict-origin-when-cross-origin");
+  res.setHeader("X-XSS-Protection", "1; mode=block");
+  next();
+});
+
 // ─── Global Middleware ───────────────────────────────────
 app.use(cors());
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
+app.use(sanitizeMiddleware);
+app.use("/api", csrfProtection);
 
-// ─── Rate Limiting (as specified in API_v2.pdf Page 10) ───
-const isDev = !process.env.NODE_ENV || process.env.NODE_ENV === "development";
-const devOrGetSkip = (req) => req.method === "GET" || isDev;
+// ─── Rate Limiting ───────────────────────────────────────
+const generalLimiter = rateLimit({
+  windowMs: 60 * 1000, // 1 minute
+  max: 100,
+  message: { success: false, error: { code: "RATE_LIMITED", message: "Too many requests, please try again later." } }
+});
 
-app.use("/api/auth", rateLimit({ windowMs: 15 * 60 * 1000, max: 10, skip: () => isDev, message: { success: false, error: { code: "RATE_LIMITED", message: "Too many requests, please try again later." } } }));
-app.use("/api/questions", rateLimit({ windowMs: 15 * 60 * 1000, max: 30, skip: devOrGetSkip, message: { success: false, error: { code: "RATE_LIMITED", message: "Too many requests, please try again later." } } }));
-app.use("/api/tickets", rateLimit({ windowMs: 15 * 60 * 1000, max: 20, skip: devOrGetSkip, message: { success: false, error: { code: "RATE_LIMITED", message: "Too many requests, please try again later." } } }));
-app.use("/api/reports", rateLimit({ windowMs: 15 * 60 * 1000, max: 15, skip: devOrGetSkip, message: { success: false, error: { code: "RATE_LIMITED", message: "Too many requests, please try again later." } } }));
+const questionPostLimiter = rateLimit({
+  windowMs: 60 * 60 * 1000, // 1 hour
+  max: 10,
+  message: { success: false, error: { code: "RATE_LIMITED", message: "Too many questions posted. Limit is 10 per hour." } }
+});
+
+const answerPostLimiter = rateLimit({
+  windowMs: 60 * 60 * 1000, // 1 hour
+  max: 30,
+  message: { success: false, error: { code: "RATE_LIMITED", message: "Too many answers posted. Limit is 30 per hour." } }
+});
+
+// Apply rate limiting
+app.use("/api", generalLimiter);
+app.post("/api/questions", questionPostLimiter);
+app.post("/api/questions/:id/answers", answerPostLimiter);
 
 // ─── API Routes ──────────────────────────────────────────
 app.use("/api", apiRoutes);

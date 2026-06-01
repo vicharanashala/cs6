@@ -103,6 +103,33 @@ export const localModerate = (text) => {
   };
 };
 
+const PROMPT_INJECTION_PATTERNS = [
+  /ignore\s+(?:the\s+)?(?:above|previous)\s+instructions/i,
+  /ignore\s+all\s+prior\s+directives/i,
+  /bypass\s+(?:the\s+)?(?:safety|moderation)\s+filters/i,
+  /you\s+must\s+now\s+act\s+as/i,
+  /dan\s+mode/i,
+  /jailbreak/i,
+  /developer\s+mode\s+active/i,
+  /system\s+directive/i,
+  /ignore\s+restrictions/i
+];
+
+/**
+ * Checks for common prompt injection patterns in text
+ * @param {string} text
+ * @returns {boolean}
+ */
+export const detectPromptInjection = (text) => {
+  const clean = text.toLowerCase();
+  for (const pattern of PROMPT_INJECTION_PATTERNS) {
+    if (pattern.test(clean)) {
+      return true;
+    }
+  }
+  return false;
+};
+
 /**
  * Moderate text using Hugging Face Serverless Inference API (toxic-bert)
  * Falls back to local profanity checker on loading/errors/rate-limit.
@@ -118,6 +145,18 @@ export const moderateText = async (text) => {
       decision: 'approved',
       reason: 'Empty text',
       scores: {}
+    };
+  }
+
+  // Filter prompt injection attempts
+  if (detectPromptInjection(text)) {
+    return {
+      isSafe: false,
+      isSuspicious: false,
+      isHighlyUnsafe: true,
+      decision: 'rejected',
+      reason: 'AI Moderation Security: Prompt injection attempt detected.',
+      scores: { injection: 1.0 }
     };
   }
 

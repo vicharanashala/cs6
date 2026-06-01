@@ -4,6 +4,7 @@ import Notification from '../models/Notification.js';
 import AuditLog from '../models/AuditLog.js';
 import Report from '../models/Report.js';
 import { moderateText } from '../utils/moderation.js';
+import { logSecurityEvent } from '../utils/audit.js';
 
 export const getAnswersForQuestion = async (req, res, next) => {
   try {
@@ -97,6 +98,8 @@ export const createAnswer = async (req, res, next) => {
       newAnswer.moderationState = 'rejected';
       await newAnswer.save();
 
+      await logSecurityEvent({ req, action: 'ai_moderation_blocked', targetType: 'answer', targetId: newAnswer._id, details: { reason: modResult.reason, body } });
+
       // Create high-severity AI report
       await Report.create({
         targetType: 'answer',
@@ -120,6 +123,8 @@ export const createAnswer = async (req, res, next) => {
       newAnswer.status = 'flagged';
       newAnswer.moderationState = 'flagged';
       await newAnswer.save();
+
+      await logSecurityEvent({ req, action: 'ai_moderation_flagged', targetType: 'answer', targetId: newAnswer._id, details: { reason: modResult.reason, body } });
 
       // Create medium-severity AI report
       await Report.create({
@@ -180,9 +185,9 @@ export const deleteAnswer = async (req, res, next) => {
     await answer.save();
 
     if (req.user.role !== 'user') {
-      await AuditLog.create({
+      await logSecurityEvent({
+        req,
         action: 'delete_answer',
-        performedBy: req.user.userId,
         targetType: 'answer',
         targetId: answer._id,
         details: { authorId: answer.author }
@@ -313,9 +318,9 @@ export const markAsBestAnswer = async (req, res, next) => {
       });
     }
 
-    await AuditLog.create({
+    await logSecurityEvent({
+      req,
       action: 'mark_best_answer',
-      performedBy: req.user.userId,
       targetType: 'answer',
       targetId: answer._id,
       details: { questionId: id }

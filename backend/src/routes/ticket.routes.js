@@ -10,10 +10,11 @@ import {
   deleteAttachment, 
   assignTicket 
 } from "../controllers/tickets.controller.js";
-import { validateRequest } from "../middlewares/validate.js";
+import { validateRequest, validateZod } from "../middlewares/validate.js";
 import authMiddleware from "../middlewares/authMiddleware.js";
 import { requireRole } from "../middlewares/roleMiddleware.js";
-import { upload } from "../services/upload.service.js";
+import { upload, getPresignedUploadUrl } from "../services/upload.service.js";
+import { createTicketSchema } from "../validation/schemas.js";
 
 const router = Router();
 
@@ -24,12 +25,7 @@ router.get("/", getTickets);
 
 router.post(
   "/",
-  [
-    body("title").trim().isLength({ min: 5, max: 100 }).withMessage("Title must be between 5 and 100 characters"),
-    body("description").trim().isLength({ min: 20, max: 2000 }).withMessage("Description must be between 20 and 2000 characters"),
-    body("category").optional().isIn(["technical", "login", "other"]).withMessage("Category must be 'technical', 'login', or 'other'")
-  ],
-  validateRequest,
+  validateZod(createTicketSchema),
   createTicket
 );
 
@@ -70,5 +66,37 @@ router.patch(
   validateRequest,
   assignTicket
 );
+
+// S3 Presigned Upload URL (direct client-to-S3 upload)
+router.post("/:id/presigned-upload", (req, res) => {
+  const { filename, contentType } = req.body;
+
+  if (!filename || !contentType) {
+    return res.status(400).json({
+      success: false,
+      error: {
+        code: 'VALIDATION_ERROR',
+        message: 'filename and contentType are required'
+      }
+    });
+  }
+
+  const allowedTypes = ['image/jpeg', 'image/png', 'application/pdf'];
+  if (!allowedTypes.includes(contentType)) {
+    return res.status(400).json({
+      success: false,
+      error: {
+        code: 'VALIDATION_ERROR',
+        message: `Invalid content type. Allowed: ${allowedTypes.join(', ')}`
+      }
+    });
+  }
+
+  const result = getPresignedUploadUrl(filename, contentType);
+  return res.status(200).json({
+    success: true,
+    data: result
+  });
+});
 
 export default router;

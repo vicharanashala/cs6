@@ -57,6 +57,22 @@ const userSchema = new mongoose.Schema({
   internshipStartDate: {
     type: Date,
     default: null
+  },
+  mfaSecret: {
+    type: String,
+    default: null
+  },
+  mfaEnabled: {
+    type: Boolean,
+    default: false
+  },
+  failedAttempts: {
+    type: Number,
+    default: 0
+  },
+  lockUntil: {
+    type: Date,
+    default: null
   }
 }, { timestamps: { createdAt: 'createdAt', updatedAt: true } }); // Sync updatedAt to trace user modifications
 

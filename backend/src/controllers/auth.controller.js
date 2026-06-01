@@ -5,6 +5,9 @@ import jwt from "jsonwebtoken";
 import bcrypt from "bcrypt";
 import crypto from "crypto";
 import { sendOTPEmail } from "../utils/email.js";
+import { encrypt, decrypt } from "../utils/encryption.js";
+import { generateSecret, verifyTOTP } from "../utils/totp.js";
+import { logSecurityEvent } from "../utils/audit.js";
 
 const generateAccessToken = (user) => {
   return jwt.sign(
@@ -116,17 +119,38 @@ export const login = async (req, res, next) => {
 
     const user = await User.findOne({ email: email.toLowerCase() });
     if (!user || user.status === 'deactivated') {
+      await logSecurityEvent({ req, action: 'login_failed', details: { email, reason: 'User not found or deactivated' } });
       return res.status(401).json({
         success: false,
         error: {
           code: 'UNAUTHORIZED',
           message: 'Invalid email or password'
+        }
+      });
+    }
+
+    // Check account lockout
+    if (user.lockUntil && user.lockUntil > Date.now()) {
+      await logSecurityEvent({ req, action: 'login_failed', performedBy: user._id, targetId: user._id, details: { email, reason: 'Account locked' } });
+      const minutesRemaining = Math.ceil((user.lockUntil.getTime() - Date.now()) / 60000);
+      return res.status(403).json({
+        success: false,
+        error: {
+          code: 'ACCOUNT_LOCKED',
+          message: `Account is temporarily locked due to too many failed login attempts. Try again in ${minutesRemaining} minutes.`
         }
       });
     }
 
     const isMatch = await user.comparePassword(password);
     if (!isMatch) {
+      user.failedAttempts = (user.failedAttempts || 0) + 1;
+      if (user.failedAttempts >= 5) {
+        user.lockUntil = new Date(Date.now() + 15 * 60 * 1000); // 15-minute lock
+      }
+      await user.save();
+      await logSecurityEvent({ req, action: 'login_failed', performedBy: user._id, targetId: user._id, details: { email, reason: 'Password mismatch', failedAttempts: user.failedAttempts } });
+
       return res.status(401).json({
         success: false,
         error: {
@@ -136,8 +160,32 @@ export const login = async (req, res, next) => {
       });
     }
 
+    // Reset failed attempts on successful credentials match
+    user.failedAttempts = 0;
+    user.lockUntil = null;
+    await user.save();
+
+    // Check if MFA is enabled
+    if (user.mfaEnabled) {
+      const mfaToken = jwt.sign(
+        { userId: user._id, purpose: 'mfa-login' },
+        process.env.JWT_SECRET,
+        { expiresIn: '5m' }
+      );
+      await logSecurityEvent({ req, action: 'login_mfa_required', performedBy: user._id, targetId: user._id, details: { email } });
+      return res.status(200).json({
+        success: true,
+        data: {
+          mfaRequired: true,
+          mfaToken
+        }
+      });
+    }
+
     const accessToken = generateAccessToken(user);
     const refreshToken = await generateRefreshToken(user);
+
+    await logSecurityEvent({ req, action: 'login_success', performedBy: user._id, targetId: user._id, details: { email } });
 
     return res.status(200).json({
       success: true,
@@ -517,6 +565,222 @@ export const resetPassword = async (req, res, next) => {
     return res.status(200).json({
       success: true,
       message: 'Password has been reset successfully. You can now login with your new password.'
+    });
+  } catch (error) {
+    next(error);
+  }
+};
+
+// ─── MFA Endpoints ───────────────────────────────────────────────────────────
+
+export const loginMFA = async (req, res, next) => {
+  try {
+    const { mfaToken, code } = req.body;
+    if (!mfaToken || !code) {
+      return res.status(400).json({
+        success: false,
+        error: {
+          code: 'VALIDATION_ERROR',
+          message: 'MFA token and 6-digit code are required.'
+        }
+      });
+    }
+
+    let decoded;
+    try {
+      decoded = jwt.verify(mfaToken, process.env.JWT_SECRET);
+    } catch (err) {
+      return res.status(400).json({
+        success: false,
+        error: {
+          code: 'INVALID_TOKEN',
+          message: 'MFA login token is invalid or has expired.'
+        }
+      });
+    }
+
+    if (decoded.purpose !== 'mfa-login') {
+      return res.status(400).json({
+        success: false,
+        error: {
+          code: 'INVALID_TOKEN',
+          message: 'Invalid MFA login token.'
+        }
+      });
+    }
+
+    const user = await User.findById(decoded.userId);
+    if (!user || user.status === 'deactivated') {
+      return res.status(401).json({
+        success: false,
+        error: {
+          code: 'UNAUTHORIZED',
+          message: 'User no longer exists or is deactivated.'
+        }
+      });
+    }
+
+    const decryptedSecret = decrypt(user.mfaSecret);
+    const isValid = verifyTOTP(code, decryptedSecret);
+    if (!isValid) {
+      await logSecurityEvent({ req, action: 'mfa_login_failed', performedBy: user._id, targetId: user._id, details: { reason: 'Incorrect TOTP code' } });
+      return res.status(400).json({
+        success: false,
+        error: {
+          code: 'INVALID_OTP',
+          message: 'Invalid 6-digit verification code.'
+        }
+      });
+    }
+
+    const accessToken = generateAccessToken(user);
+    const refreshToken = await generateRefreshToken(user);
+
+    await logSecurityEvent({ req, action: 'mfa_login_success', performedBy: user._id, targetId: user._id });
+
+    return res.status(200).json({
+      success: true,
+      data: {
+        accessToken,
+        refreshToken,
+        user: {
+          _id: user._id,
+          username: user.username,
+          name: user.name,
+          email: user.email,
+          role: user.role,
+          badgeLevel: user.badgeLevel,
+          avatar: user.avatar,
+          createdAt: user.createdAt,
+          internshipStartDate: user.internshipStartDate
+        }
+      }
+    });
+  } catch (error) {
+    next(error);
+  }
+};
+
+export const setupMFA = async (req, res, next) => {
+  try {
+    const user = await User.findById(req.user.userId);
+    if (!user) {
+      return res.status(404).json({
+        success: false,
+        error: { code: 'NOT_FOUND', message: 'User not found' }
+      });
+    }
+
+    if (user.mfaEnabled) {
+      return res.status(400).json({
+        success: false,
+        error: { code: 'BAD_REQUEST', message: 'MFA is already enabled' }
+      });
+    }
+
+    const secret = generateSecret(20);
+    user.mfaSecret = encrypt(secret);
+    await user.save();
+
+    await logSecurityEvent({ req, action: 'mfa_setup_initiated', performedBy: user._id, targetId: user._id });
+
+    const label = encodeURIComponent(`FAQPortal:${user.email}`);
+    const issuer = encodeURIComponent('FAQPortal');
+    const otpauthUrl = `otpauth://totp/${label}?secret=${secret}&issuer=${issuer}`;
+    const qrCodeUrl = `https://api.qrserver.com/v1/create-qr-code/?size=200x200&data=${encodeURIComponent(otpauthUrl)}`;
+
+    return res.status(200).json({
+      success: true,
+      data: {
+        secret,
+        otpauthUrl,
+        qrCodeUrl
+      }
+    });
+  } catch (error) {
+    next(error);
+  }
+};
+
+export const verifyMFA = async (req, res, next) => {
+  try {
+    const { code } = req.body;
+    if (!code) {
+      return res.status(400).json({
+        success: false,
+        error: { code: 'VALIDATION_ERROR', message: 'Verification code is required' }
+      });
+    }
+
+    const user = await User.findById(req.user.userId);
+    if (!user || !user.mfaSecret) {
+      return res.status(400).json({
+        success: false,
+        error: { code: 'BAD_REQUEST', message: 'MFA is not set up' }
+      });
+    }
+
+    const decryptedSecret = decrypt(user.mfaSecret);
+    const isValid = verifyTOTP(code, decryptedSecret);
+    if (!isValid) {
+      await logSecurityEvent({ req, action: 'mfa_enable_failed', performedBy: user._id, targetId: user._id, details: { reason: 'Incorrect TOTP code' } });
+      return res.status(400).json({
+        success: false,
+        error: { code: 'INVALID_OTP', message: 'Invalid 6-digit verification code' }
+      });
+    }
+
+    user.mfaEnabled = true;
+    await user.save();
+
+    await logSecurityEvent({ req, action: 'mfa_enabled', performedBy: user._id, targetId: user._id });
+
+    return res.status(200).json({
+      success: true,
+      message: 'Multi-factor authentication enabled successfully'
+    });
+  } catch (error) {
+    next(error);
+  }
+};
+
+export const disableMFA = async (req, res, next) => {
+  try {
+    const { code } = req.body;
+    if (!code) {
+      return res.status(400).json({
+        success: false,
+        error: { code: 'VALIDATION_ERROR', message: 'Verification code is required' }
+      });
+    }
+
+    const user = await User.findById(req.user.userId);
+    if (!user || !user.mfaEnabled) {
+      return res.status(400).json({
+        success: false,
+        error: { code: 'BAD_REQUEST', message: 'MFA is not enabled' }
+      });
+    }
+
+    const decryptedSecret = decrypt(user.mfaSecret);
+    const isValid = verifyTOTP(code, decryptedSecret);
+    if (!isValid) {
+      await logSecurityEvent({ req, action: 'mfa_disable_failed', performedBy: user._id, targetId: user._id, details: { reason: 'Incorrect TOTP code' } });
+      return res.status(400).json({
+        success: false,
+        error: { code: 'INVALID_OTP', message: 'Invalid 6-digit verification code' }
+      });
+    }
+
+    user.mfaEnabled = false;
+    user.mfaSecret = null;
+    await user.save();
+
+    await logSecurityEvent({ req, action: 'mfa_disabled', performedBy: user._id, targetId: user._id });
+
+    return res.status(200).json({
+      success: true,
+      message: 'Multi-factor authentication disabled successfully'
     });
   } catch (error) {
     next(error);

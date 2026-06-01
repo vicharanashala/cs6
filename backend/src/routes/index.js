@@ -14,10 +14,12 @@ import notificationRoutes from "./notification.routes.js";
 import userRoutes from "./user.routes.js";
 import bookmarkRoutes from "./bookmark.routes.js";
 import cohortRoutes from "./cohort.routes.js";
+import { getCsrfToken } from "../middlewares/csrfMiddleware.js";
 
 const router = Router();
 
 // Mount route modules
+router.get("/csrf-token", getCsrfToken);
 router.use("/health", healthRoutes);
 router.use("/auth", authRoutes);
 router.use("/categories", categoryRoutes);

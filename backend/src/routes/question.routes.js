@@ -15,11 +15,12 @@ import {
   revertFAQ
 } from "../controllers/questions.controller.js";
 import { unifiedSearch } from "../controllers/search.controller.js";
-import { validateRequest } from "../middlewares/validate.js";
+import { validateRequest, validateZod } from "../middlewares/validate.js";
 import authMiddleware from "../middlewares/authMiddleware.js";
 import { requireRole, requireOwnerOrRole } from "../middlewares/roleMiddleware.js";
 import Question from "../models/Question.js";
 import answerRoutes from "./answer.routes.js";
+import { createQuestionSchema } from "../validation/schemas.js";
 
 const router = Router();
 
@@ -38,14 +39,7 @@ router.get("/:id", getQuestionById);
 router.post(
   "/",
   authMiddleware,
-  [
-    body("title").trim().isLength({ min: 10, max: 150 }).withMessage("Title must be between 10 and 150 characters"),
-    body("body").trim().isLength({ min: 20 }).withMessage("Body must be at least 20 characters long"),
-    body("tags").isArray({ min: 1, max: 5 }).withMessage("Tags must be an array of 1 to 5 strings"),
-    body("tags.*").trim().notEmpty().withMessage("Tag value cannot be empty"),
-    body("category").isMongoId().withMessage("Category must be a valid Mongo ID")
-  ],
-  validateRequest,
+  validateZod(createQuestionSchema),
   createQuestion
 );
 

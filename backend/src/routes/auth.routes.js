@@ -1,42 +1,28 @@
 import { Router } from "express";
 import { body } from "express-validator";
-import { register, login, me, refresh, logout, changePassword, forgotPassword, verifyOTP, resetPassword } from "../controllers/auth.controller.js";
-import { validateRequest } from "../middlewares/validate.js";
+import { register, login, me, refresh, logout, changePassword, forgotPassword, verifyOTP, resetPassword, loginMFA, setupMFA, verifyMFA, disableMFA } from "../controllers/auth.controller.js";
+import { validateRequest, validateZod } from "../middlewares/validate.js";
 import authMiddleware from "../middlewares/authMiddleware.js";
+import { registerSchema, loginSchema } from "../validation/schemas.js";
 
 const router = Router();
 
 router.post(
   "/register",
-  [
-    body("username").trim().notEmpty().withMessage("Username is required"),
-    body("name").trim().isLength({ min: 2, max: 50 }).withMessage("Name must be between 2 and 50 characters"),
-    body("email").trim().isEmail().withMessage("Must be a valid email address"),
-    body("internshipStartDate")
-      .optional({ nullable: true, checkFalsy: true })
-      .isISO8601()
-      .withMessage("Internship start date must be a valid date"),
-    body("password")
-      .isLength({ min: 8 })
-      .withMessage("Password must be at least 8 characters long")
-      .matches(/[A-Z]/)
-      .withMessage("Password must contain at least one uppercase letter")
-      .matches(/[0-9]/)
-      .withMessage("Password must contain at least one digit")
-  ],
-  validateRequest,
+  validateZod(registerSchema),
   register
 );
 
 router.post(
   "/login",
-  [
-    body("email").trim().isEmail().withMessage("Must be a valid email address"),
-    body("password").notEmpty().withMessage("Password is required")
-  ],
-  validateRequest,
+  validateZod(loginSchema),
   login
 );
+
+router.post("/login/mfa", loginMFA);
+router.post("/mfa/setup", authMiddleware, setupMFA);
+router.post("/mfa/verify", authMiddleware, verifyMFA);
+router.post("/mfa/disable", authMiddleware, disableMFA);
 
 router.get("/me", authMiddleware, me);
 

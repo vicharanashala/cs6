@@ -8,16 +8,24 @@ const auditLogSchema = new mongoose.Schema({
   performedBy: {
     type: mongoose.Schema.Types.ObjectId,
     ref: 'User',
-    required: true
+    default: null
   },
   targetType: {
     type: String,
-    enum: ['question', 'answer', 'report', 'user', 'category', 'ticket'],
+    enum: ['question', 'answer', 'report', 'user', 'category', 'ticket', 'auth'],
     required: true
   },
   targetId: {
     type: mongoose.Schema.Types.ObjectId,
-    required: true
+    default: null
+  },
+  ip: {
+    type: String,
+    default: null
+  },
+  userAgent: {
+    type: String,
+    default: null
   },
   details: {
     type: mongoose.Schema.Types.Mixed

@@ -2,8 +2,8 @@ import SupportTicket from '../models/SupportTicket.js';
 import TicketMessage from '../models/TicketMessage.js';
 import User from '../models/User.js';
 import Notification from '../models/Notification.js';
-import AuditLog from '../models/AuditLog.js';
 import { uploadToCloudinary, deleteFromCloudinary } from '../services/upload.service.js';
+import { logSecurityEvent } from '../utils/audit.js';
 
 export const getTickets = async (req, res, next) => {
   try {
@@ -140,13 +140,7 @@ export const updateTicketStatus = async (req, res, next) => {
       });
     }
 
-    await AuditLog.create({
-      action: 'update_ticket_status',
-      performedBy: req.user.userId,
-      targetType: 'ticket',
-      targetId: ticket._id,
-      details: { status }
-    });
+    await logSecurityEvent({ req, action: 'update_ticket_status', performedBy: req.user.userId, targetType: 'ticket', targetId: ticket._id, details: { status } });
 
     return res.status(200).json({
       success: true,
@@ -251,8 +245,23 @@ export const uploadAttachment = async (req, res, next) => {
       });
     }
 
-    // Upload to Cloudinary / Mock
-    const uploadResult = await uploadToCloudinary(req.file.buffer, req.file.originalname);
+    // Upload to Cloudinary / Mock (ClamAV scans buffer automatically)
+    let uploadResult;
+    try {
+      uploadResult = await uploadToCloudinary(req.file.buffer, req.file.originalname);
+    } catch (uploadError) {
+      if (uploadError.code === 'MALWARE_DETECTED') {
+        await logSecurityEvent({ req, action: 'malware_upload_blocked', performedBy: req.user.userId, targetType: 'ticket', targetId: ticket._id, details: { filename: req.file.originalname, reason: uploadError.message } });
+        return res.status(422).json({
+          success: false,
+          error: {
+            code: 'MALWARE_DETECTED',
+            message: 'File upload rejected: malware detected in the uploaded file.'
+          }
+        });
+      }
+      throw uploadError;
+    }
     
     ticket.attachments.push({
       url: uploadResult.url,
@@ -261,6 +270,8 @@ export const uploadAttachment = async (req, res, next) => {
     });
 
     await ticket.save();
+
+    await logSecurityEvent({ req, action: 'file_uploaded', performedBy: req.user.userId, targetType: 'ticket', targetId: ticket._id, details: { filename: req.file.originalname } });
 
     return res.status(201).json({
       success: true,
@@ -356,13 +367,7 @@ export const assignTicket = async (req, res, next) => {
     ticket.status = 'in_progress';
     await ticket.save();
 
-    await AuditLog.create({
-      action: 'assign_ticket',
-      performedBy: req.user.userId,
-      targetType: 'ticket',
-      targetId: ticket._id,
-      details: { assignedTo }
-    });
+    await logSecurityEvent({ req, action: 'assign_ticket', performedBy: req.user.userId, targetType: 'ticket', targetId: ticket._id, details: { assignedTo } });
 
     return res.status(200).json({
       success: true,
