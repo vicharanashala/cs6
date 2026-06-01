@@ -95,8 +95,11 @@ const Home = ({ categories = [], onCategorySelect, onAskClick, onQuestionSelect 
       <section className="mb-16 text-center max-w-3xl mx-auto" id="hero">
         <h1 className="mb-4 text-4xl sm:text-5xl font-black tracking-tight leading-tight text-white">
           Find answers to your{" "}
-          <span className="bg-gradient-to-r from-primary-400 to-purple-400 bg-clip-text text-transparent">
-            Questions, Instantly.
+          <span className="bg-gradient-to-r from-primary-300 to-primary-400 bg-clip-text text-transparent">
+            Questions,
+          </span>{" "}
+          <span className="bg-gradient-to-r from-[#87A987] via-[#87A987]/75 to-[#87A987]/45 bg-clip-text text-transparent">
+            Instantly.
           </span>
         </h1>
         
