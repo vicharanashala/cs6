@@ -28,11 +28,8 @@ A collaborative FAQ platform for VLED Summership where students can ask question
 
 ### Security Features
 * **Authentication Hardening**: Short-lived (15 min) JWT access tokens combined with rotating single-use refresh tokens.
-* **Multi-Factor Authentication (MFA)**: Opt-in TOTP security pairing with Google Authenticator.
 * **Brute-Force Account Lockout**: Automatic 15-minute user lockout after 5 consecutive failed login attempts.
 * **AI Content Moderation**: Unitary Toxic-BERT evaluation intercepting posts, with a local regex-based dual-tier backup fallback.
-* **Upload Antivirus Security**: ClamAV TCP stream antivirus checks and strict MIME/size filters on ticket attachments.
-* **Secure S3 File Storage**: Pre-signed AWS S3 signatures generated server-side to hide AWS secrets and prevent direct client access.
 * **XSS, CSRF, & CORS Integrity**: Helmet security headers, double-submit cookie validation with Axios lazy-fetching retries, and strict domain whitelisting.
 
 ---
