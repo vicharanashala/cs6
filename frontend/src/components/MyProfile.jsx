@@ -664,12 +664,12 @@ const MyProfile = ({ currentUser, onBack, onQuestionClick, onAskClick, initialTa
 
   // Render Sidebar Layout for Admin / Student
   return (
-    <div className="flex bg-surface min-h-[calc(100vh-73px)] text-white">
+    <div className="flex bg-surface h-[calc(100vh-73px)] text-white overflow-hidden">
       
       {/* ---------------------------------------------------- */}
       {/* LEFT SIDEBAR NAVIGATION PANEL                        */}
       {/* ---------------------------------------------------- */}
-      <aside className="w-64 shrink-0 border-r border-white/10 bg-surface-dark flex flex-col justify-between p-5 select-none font-sans">
+      <aside className="w-64 shrink-0 border-r border-white/10 bg-surface-dark flex flex-col justify-between p-5 select-none font-sans overflow-y-auto">
         <div className="space-y-7">
           
           {/* Logo / Brand Header */}
