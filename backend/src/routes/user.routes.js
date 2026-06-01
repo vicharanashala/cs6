@@ -28,6 +28,7 @@ router.patch(
   authMiddleware,
   [
     body("name").optional().trim().isLength({ min: 2, max: 50 }).withMessage("Name must be between 2 and 50 characters"),
+    body("username").optional().trim().isLength({ min: 2, max: 50 }).withMessage("Username must be between 2 and 50 characters"),
     body("avatar").optional().trim().custom(value => {
       if (value === "") return true;
       try {

@@ -155,6 +155,10 @@ function App() {
               setBackView("profile");
               setViewState("category");
             }}
+            onProfileUpdate={(updatedUser) => {
+              setCurrentUser(updatedUser);
+              localStorage.setItem("user", JSON.stringify(updatedUser));
+            }}
           />
         )}
       </main>

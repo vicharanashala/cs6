@@ -26,23 +26,29 @@ export const getUserProfile = async (req, res, next) => {
     const userAnswers = await Answer.find({ author: id, status: 'visible' }).select('upvoteCount').lean();
     const upvotesReceived = userAnswers.reduce((sum, a) => sum + (a.upvoteCount || 0), 0);
 
+    const responseData = {
+      _id: user._id,
+      username: user.username,
+      name: user.name || user.username,
+      role: user.role,
+      avatar: user.avatar || '',
+      profileMetadata: user.profileMetadata || {},
+      joinedAt: user.createdAt,
+      stats: {
+        questionsAsked,
+        answersGiven,
+        bestAnswers,
+        upvotesReceived
+      }
+    };
+
+    if (req.user && (req.user.userId === id || ['admin', 'superadmin'].includes(req.user.role))) {
+      responseData.email = user.email;
+    }
+
     return res.status(200).json({
       success: true,
-      data: {
-        _id: user._id,
-        username: user.username,
-        name: user.name || user.username,
-        role: user.role,
-        avatar: user.avatar || '',
-        profileMetadata: user.profileMetadata || {},
-        joinedAt: user.createdAt,
-        stats: {
-          questionsAsked,
-          answersGiven,
-          bestAnswers,
-          upvotesReceived
-        }
-      }
+      data: responseData
     });
   } catch (error) {
     next(error);
@@ -130,7 +136,7 @@ export const getUserAnswers = async (req, res, next) => {
 
 export const updateMe = async (req, res, next) => {
   try {
-    const { name, avatar, role, profileMetadata } = req.body;
+    const { name, username, avatar, role, profileMetadata } = req.body;
 
     const user = await User.findById(req.user.userId);
     if (!user) {
@@ -144,6 +150,19 @@ export const updateMe = async (req, res, next) => {
     }
 
     if (name) user.name = name;
+    if (username && username !== user.username) {
+      const existingUser = await User.findOne({ username });
+      if (existingUser) {
+        return res.status(400).json({
+          success: false,
+          error: {
+            code: 'VALIDATION_ERROR',
+            message: 'Username is already taken'
+          }
+        });
+      }
+      user.username = username;
+    }
     if (avatar !== undefined) user.avatar = avatar;
     if (role !== undefined) {
       if (['user', 'moderator', 'admin'].includes(role) && role !== 'superadmin') {

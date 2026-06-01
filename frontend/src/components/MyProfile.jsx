@@ -40,7 +40,7 @@ const statusMap = {
   resolved: "Resolved"
 };
 
-const MyProfile = ({ currentUser, onBack, onQuestionClick, onAskClick, initialTab, onCategorySelect }) => {
+const MyProfile = ({ currentUser, onBack, onQuestionClick, onAskClick, initialTab, onCategorySelect, onProfileUpdate }) => {
   const [profile, setProfile] = useState(null);
   const [loadingProfile, setLoadingProfile] = useState(true);
   const [activeTab, setActiveTab] = useState(
@@ -123,12 +123,23 @@ const MyProfile = ({ currentUser, onBack, onQuestionClick, onAskClick, initialTa
 
   // Form states
   const [updateName, setUpdateName] = useState("");
+  const [updateUsername, setUpdateUsername] = useState("");
   const [updateMetadata, setUpdateMetadata] = useState({
     department: "",
     staffId: "",
     authTier: "Level 1"
   });
   const [savingSettings, setSavingSettings] = useState(false);
+  const [toast, setToast] = useState(null);
+
+  useEffect(() => {
+    if (toast) {
+      const timer = setTimeout(() => {
+        setToast(null);
+      }, 3000);
+      return () => clearTimeout(timer);
+    }
+  }, [toast]);
 
   // Ticket form states
   const [ticketTitle, setTicketTitle] = useState("");
@@ -215,6 +226,7 @@ const MyProfile = ({ currentUser, onBack, onQuestionClick, onAskClick, initialTa
         const uProfile = response.data.data;
         setProfile(uProfile);
         setUpdateName(uProfile.name || uProfile.username);
+        setUpdateUsername(uProfile.username || "");
         setUpdateMetadata({
           department: uProfile.profileMetadata?.department || "",
           staffId: uProfile.profileMetadata?.staffId || "",
@@ -472,25 +484,26 @@ const MyProfile = ({ currentUser, onBack, onQuestionClick, onAskClick, initialTa
     try {
       const response = await api.patch("/users/me", {
         name: updateName,
-        profileMetadata: {
-          ...profile.profileMetadata,
-          department: updateMetadata.department,
-          staffId: updateMetadata.staffId,
-          authTier: updateMetadata.authTier
-        }
+        username: updateUsername
       });
 
       if (response.data.success) {
         setProfile(prev => ({
           ...prev,
           name: response.data.data.name,
-          profileMetadata: response.data.data.profileMetadata
+          username: response.data.data.username
         }));
         setActionMessage("Settings updated successfully!");
+        setToast({ message: "your profile is saved", type: "success" });
+        if (onProfileUpdate) {
+          onProfileUpdate(response.data.data);
+        }
       }
     } catch (error) {
       console.error(error);
-      setActionMessage("Error saving settings.");
+      const errMsg = error.response?.data?.error?.message || "Error saving settings.";
+      setActionMessage(errMsg);
+      setToast({ message: errMsg, type: "error" });
     } finally {
       setSavingSettings(false);
     }
@@ -2096,21 +2109,20 @@ const MyProfile = ({ currentUser, onBack, onQuestionClick, onAskClick, initialTa
 
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                       <div>
-                        <label className="block text-xs font-semibold text-gray-400 uppercase mb-1.5">Department</label>
+                        <label className="block text-xs font-semibold text-gray-400 uppercase mb-1.5">Email</label>
                         <input
-                          type="text"
-                          value={updateMetadata.department}
-                          onChange={(e) => setUpdateMetadata({...updateMetadata, department: e.target.value})}
-                          required
-                          className="w-full rounded-lg border border-white/10 bg-surface py-2.5 px-4 text-sm text-white focus:border-primary-500 focus:outline-none"
+                          type="email"
+                          value={profile?.email || ""}
+                          disabled
+                          className="w-full rounded-lg border border-white/10 bg-surface/50 py-2.5 px-4 text-sm text-gray-400 cursor-not-allowed focus:outline-none select-none"
                         />
                       </div>
                       <div>
-                        <label className="block text-xs font-semibold text-gray-400 uppercase mb-1.5">Staff ID</label>
+                        <label className="block text-xs font-semibold text-gray-400 uppercase mb-1.5">Username</label>
                         <input
                           type="text"
-                          value={updateMetadata.staffId}
-                          onChange={(e) => setUpdateMetadata({...updateMetadata, staffId: e.target.value})}
+                          value={updateUsername}
+                          onChange={(e) => setUpdateUsername(e.target.value)}
                           required
                           className="w-full rounded-lg border border-white/10 bg-surface py-2.5 px-4 text-sm text-white focus:border-primary-500 focus:outline-none"
                         />
@@ -2118,16 +2130,17 @@ const MyProfile = ({ currentUser, onBack, onQuestionClick, onAskClick, initialTa
                     </div>
 
                     <div>
-                      <label className="block text-xs font-semibold text-gray-400 uppercase mb-1.5">Authorization Level</label>
-                      <select
-                        value={updateMetadata.authTier}
-                        onChange={(e) => setUpdateMetadata({...updateMetadata, authTier: e.target.value})}
-                        className="w-full rounded-lg border border-white/10 bg-surface py-2.5 px-4 text-sm text-white focus:border-primary-500 focus:outline-none"
-                      >
-                        <option value="Level 1" className="bg-surface-light text-white">Level 1 (Basic Moderator)</option>
-                        <option value="Level 2" className="bg-surface-light text-white">Level 2 (Senior Moderator)</option>
-                        <option value="Super Admin" className="bg-surface-light text-white">Super Admin (System Owner)</option>
-                      </select>
+                      <label className="block text-xs font-semibold text-gray-400 uppercase mb-1.5">Authorisation Level</label>
+                      <input
+                        type="text"
+                        value={
+                          profile?.role === "user" || profile?.role === "student"
+                            ? "Student"
+                            : profile?.profileMetadata?.authTier || (profile?.role === "superadmin" ? "Super Admin" : "Moderator")
+                        }
+                        disabled
+                        className="w-full rounded-lg border border-white/10 bg-surface/50 py-2.5 px-4 text-sm text-gray-400 cursor-not-allowed focus:outline-none select-none"
+                      />
                     </div>
 
                     <button
@@ -2152,16 +2165,16 @@ const MyProfile = ({ currentUser, onBack, onQuestionClick, onAskClick, initialTa
                     </div>
                     <div className="border-t border-white/5 pt-4 space-y-3 text-xs text-gray-300">
                       <div>
-                        <span className="block text-[9px] uppercase font-bold text-gray-500">Department</span>
-                        <strong className="text-white font-medium">{profile.profileMetadata?.department || "VLED Lab"}</strong>
+                        <span className="block text-[9px] uppercase font-bold text-gray-500">Email</span>
+                        <strong className="text-white font-medium">{profile.email}</strong>
                       </div>
                       <div>
-                        <span className="block text-[9px] uppercase font-bold text-gray-500">Staff ID</span>
-                        <strong className="text-white font-mono font-medium">{profile.profileMetadata?.staffId || "IITR-ADM-2026"}</strong>
-                      </div>
-                      <div>
-                        <span className="block text-[9px] uppercase font-bold text-gray-500">Tier</span>
-                        <strong className="text-indigo-400 font-bold">{profile.profileMetadata?.authTier || "Super Admin"}</strong>
+                        <span className="block text-[9px] uppercase font-bold text-gray-500">Authorisation Level</span>
+                        <strong className="text-indigo-400 font-bold">
+                          {profile?.role === "user" || profile?.role === "student"
+                            ? "Student"
+                            : profile?.profileMetadata?.authTier || (profile?.role === "superadmin" ? "Super Admin" : "Moderator")}
+                        </strong>
                       </div>
                     </div>
                   </div>
@@ -2545,6 +2558,28 @@ const MyProfile = ({ currentUser, onBack, onQuestionClick, onAskClick, initialTa
           </>
         )}
       </main>
+
+      {/* Toast Notification */}
+      {toast && (
+        <div className={`fixed bottom-6 right-6 z-50 flex items-center gap-3 rounded-xl border p-4 shadow-2xl backdrop-blur-md transition-all duration-300 animate-in fade-in slide-in-from-bottom-5 ${
+          toast.type === "success"
+            ? "bg-emerald-950/80 border-emerald-500/30 text-emerald-300 shadow-emerald-950/50"
+            : "bg-red-950/80 border-red-500/30 text-red-300 shadow-red-950/50"
+        }`}>
+          {toast.type === "success" ? (
+            <CheckCircle className="h-5 w-5 text-emerald-400 shrink-0" />
+          ) : (
+            <AlertTriangle className="h-5 w-5 text-red-400 shrink-0" />
+          )}
+          <span className="text-sm font-semibold">{toast.message}</span>
+          <button 
+            onClick={() => setToast(null)} 
+            className="ml-2 text-white/40 hover:text-white transition-colors"
+          >
+            <X size={14} />
+          </button>
+        </div>
+      )}
     </div>
   );
 };
