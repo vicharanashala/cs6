@@ -6,20 +6,34 @@ A collaborative FAQ platform for VLED Summership where students can ask question
 
 ## Features
 
-* User Authentication (JWT)
-* Ask & Answer Questions
-* Category-based Knowledge Organization
-* FAQ Promotion Workflow
-* Semantic Duplicate Question Detection
-* AI-powered Content Moderation
-* Question & Answer Reporting
-* Bookmark Important Questions
-* Role-based Access Control (Student, Moderator, Admin)
-* Private Support Ticket System
-* "It is Helpful" Question Voting & Prioritization
-* Cohort Pulse Lifecycle-Based FAQ Feed
-* 4-Stage Internship Timeline Mapping (Onboarding, Documentation, ViBe, Projects)
-* Manual Answer Moderation Queue (Approve, Reject, Mark Best)
+### Student Features
+* **Interactive Q&A Feed**: Ask questions, submit answers, and query the community FAQ base.
+* **Troubleshooting Support Tickets**: Submit private technical, login, or sensitive support tickets with staff.
+* **Deflective Search**: Discover suggested matches debounced in real-time as you type.
+* **Cohort Pulse Lifecycle Feed**: View questions tailored strictly to your active internship phase.
+* **Bookmark Portal**: Save important FAQ questions directly to a personalized bookmark list.
+* **"It is Helpful" Voting**: Vote on useful questions to prioritize helpful threads in search lists.
+
+### Admin & Staff Features
+* **Manual Answer Moderation Queue**: Review student submissions with options to Approve, Reject, or Mark Best.
+* **Report Management Queue**: Assess user-reported questions/answers with logs showing toxic-BERT scores or user flag reasons.
+* **Ticket Assignment & Resolution**: Claim, assign, and reply to private support tickets, locking controls to assigned staff.
+* **FAQ Promotion System**: Promote resolved student threads into official site-wide FAQs.
+* **Role-Based View Filters**: Separate administration workspaces for Moderators, Admins, and Superadmins.
+
+### Operational Features
+* **4-Stage Timeline Mapping**: Dynamically tracks student days elapsed and maps FAQs to *Onboarding*, *Documentation*, *ViBe*, and *Projects* phases.
+* **Duplicate Prevention Check**: A semantic similarity matcher (Jaccard + Overlap NLP scores) that blocks duplicate question submissions.
+* **Dynamic Light & Dark Modes**: Responsive, symmetrical UI theme switcher using standard CSS variables and local storage memory.
+
+### Security Features
+* **Authentication Hardening**: Short-lived (15 min) JWT access tokens combined with rotating single-use refresh tokens.
+* **Multi-Factor Authentication (MFA)**: Opt-in TOTP security pairing with Google Authenticator.
+* **Brute-Force Account Lockout**: Automatic 15-minute user lockout after 5 consecutive failed login attempts.
+* **AI Content Moderation**: Unitary Toxic-BERT evaluation intercepting posts, with a local regex-based dual-tier backup fallback.
+* **Upload Antivirus Security**: ClamAV TCP stream antivirus checks and strict MIME/size filters on ticket attachments.
+* **Secure S3 File Storage**: Pre-signed AWS S3 signatures generated server-side to hide AWS secrets and prevent direct client access.
+* **XSS, CSRF, & CORS Integrity**: Helmet security headers, double-submit cookie validation with Axios lazy-fetching retries, and strict domain whitelisting.
 
 ---
 
@@ -30,8 +44,9 @@ A collaborative FAQ platform for VLED Summership where students can ask question
 * React
 * Vite
 * Tailwind CSS
+* Vanilla CSS (Dynamic light/dark theme variables)
 * React Router
-* Axios
+* Axios (CORS credential handshakes, automated CSRF fetching & retry interceptor)
 
 ### Backend
 
@@ -39,7 +54,8 @@ A collaborative FAQ platform for VLED Summership where students can ask question
 * Express.js
 * MongoDB Atlas
 * Mongoose
-* JWT Authentication
+* JWT Authentication & rotation-based Refresh Tokens
+* Speakeasy (MFA TOTP engine)
 * bcrypt
 
 ### AI & Search
@@ -50,9 +66,15 @@ A collaborative FAQ platform for VLED Summership where students can ask question
 * Gemini Embeddings
 * Jaccard Similarity & Overlap Coefficient NLP matchers
 
+### Security & Hardening
+
+* double-submit cookie CSRF validation middleware
+* Helmet (HTTP security headers)
+* Express Rate Limiter
+
 ### Storage
 
-* Cloudinary (Attachments & Images)
+* Cloudinary (Legacy attachments & images)
 
 ---
 
