@@ -202,19 +202,19 @@ const MyProfile = ({ currentUser, onBack, onQuestionClick, onAskClick, initialTa
   // ── Category icon/color meta ────────────────────────────────
   const getCategoryMeta = (index) => {
     const meta = [
-      { icon: UserPlus, colorClass: "bg-violet-50 text-violet-700 border-violet-200" },
-      { icon: DollarSign, colorClass: "bg-emerald-50 text-emerald-700 border-emerald-200" },
-      { icon: BookOpen, colorClass: "bg-blue-50 text-blue-700 border-blue-200" },
-      { icon: HomeIcon, colorClass: "bg-orange-50 text-orange-700 border-orange-200" },
-      { icon: Briefcase, colorClass: "bg-indigo-50 text-indigo-700 border-indigo-200" },
-      { icon: FileText, colorClass: "bg-red-50 text-red-700 border-red-200" },
-      { icon: Building, colorClass: "bg-teal-50 text-teal-700 border-teal-200" },
-      { icon: Award, colorClass: "bg-amber-50 text-amber-800 border-amber-200" },
-      { icon: Cpu, colorClass: "bg-cyan-50 text-cyan-700 border-cyan-200" },
-      { icon: Heart, colorClass: "bg-rose-50 text-rose-700 border-rose-200" },
-      { icon: Library, colorClass: "bg-sky-50 text-sky-700 border-sky-200" },
-      { icon: Compass, colorClass: "bg-fuchsia-50 text-fuchsia-700 border-fuchsia-200" },
-      { icon: Globe, colorClass: "bg-yellow-50 text-yellow-700 border-yellow-200" }
+      { icon: UserPlus, colorClass: "text-primary-400 bg-primary-500/10 border-primary-500/20" },
+      { icon: DollarSign, colorClass: "text-emerald-400 bg-emerald-500/10 border-emerald-500/20" },
+      { icon: BookOpen, colorClass: "text-cyan-400 bg-cyan-500/10 border-cyan-500/20" },
+      { icon: HomeIcon, colorClass: "text-teal-400 bg-teal-500/10 border-teal-500/20" },
+      { icon: Briefcase, colorClass: "text-primary-300 bg-primary-400/10 border-primary-400/20" },
+      { icon: FileText, colorClass: "text-emerald-300 bg-emerald-400/10 border-emerald-400/20" },
+      { icon: Building, colorClass: "text-teal-300 bg-teal-400/10 border-teal-400/20" },
+      { icon: Award, colorClass: "text-primary-400 bg-primary-500/10 border-primary-500/20" },
+      { icon: Cpu, colorClass: "text-cyan-300 bg-cyan-400/10 border-cyan-400/20" },
+      { icon: Heart, colorClass: "text-primary-300 bg-primary-400/10 border-primary-400/20" },
+      { icon: Library, colorClass: "text-emerald-400 bg-emerald-500/10 border-emerald-500/20" },
+      { icon: Compass, colorClass: "text-teal-400 bg-teal-500/10 border-teal-500/20" },
+      { icon: Globe, colorClass: "text-cyan-400 bg-cyan-500/10 border-cyan-500/20" }
     ];
     return meta[index % meta.length];
   };
@@ -1175,20 +1175,20 @@ const MyProfile = ({ currentUser, onBack, onQuestionClick, onAskClick, initialTa
                             <div
                               key={cat._id}
                               onClick={() => onCategorySelect(cat)}
-                              className="flip-card relative rounded-xl border border-white/5 bg-[#034d33] shadow-sm cursor-pointer"
+                              className="flip-card relative rounded-xl border border-white/5 bg-surface-light hover:border-primary-500/15 shadow-sm cursor-pointer"
                             >
                               {/* Front Face */}
                               <div className="absolute inset-0 flex flex-col justify-between p-4" style={{ backfaceVisibility: "hidden", WebkitBackfaceVisibility: "hidden" }}>
                                 <span className="absolute top-3 right-3 text-[10px] font-black text-white/10">{formattedNumber}</span>
                                 <div>
-                                  <div className="mb-3 flex h-10 w-10 items-center justify-center rounded-lg border border-white/10 bg-white/5 text-gray-300">
+                                  <div className={`mb-3 flex h-10 w-10 items-center justify-center rounded-lg border ${colorClass}`}>
                                     <Icon size={18} strokeWidth={2} />
                                   </div>
                                   <h4 className="text-sm font-extrabold text-gray-300 leading-tight">{cat.name}</h4>
                                 </div>
                                 <div className="flex items-center justify-between border-t border-white/5 pt-3">
                                   <span className="text-[10px] font-bold text-gray-400">{cat.questionCount || 0} solutions</span>
-                                  <div className="flex h-6 w-6 items-center justify-center rounded-full bg-white/5 text-gray-400 shadow-sm">
+                                  <div className="flex h-6 w-6 items-center justify-center rounded-full bg-surface-light/5 text-gray-400 shadow-sm">
                                     <ArrowRight size={12} />
                                   </div>
                                 </div>
