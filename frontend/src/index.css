@@ -346,8 +346,8 @@ body {
     color: #ffffff !important;
   }
 
-  /* Automatically map text-white to dark text except for kept-white elements and buttons */
-  .text-white:not(.keep-white):not(button):not(.btn-cyan):not([class*="bg-primary-"]):not([class*="bg-indigo-"]):not([class*="bg-indigo-500"]):not([class*="from-primary-"]):not([class*="from-indigo-"]):not(.text-gradient-hero):not(.text-gradient-cyan) {
+  /* Automatically map text-white to dark text except for kept-white elements and dark-colored buttons/surfaces */
+  .text-white:not(.keep-white):not(.btn-cyan):not([class*="bg-primary-"]):not([class*="bg-indigo-"]):not([class*="bg-blue-"]):not([class*="bg-red-"]):not([class*="bg-emerald-"]):not([class*="bg-green-"]):not([class*="bg-amber-"]):not([class*="from-primary-"]):not([class*="from-indigo-"]):not(.text-gradient-hero):not(.text-gradient-cyan) {
     color: var(--txt-gray-100) !important;
   }
 
@@ -394,5 +394,11 @@ body {
   .flip-card div[style*="rotateY(180deg)"],
   .flip-card div[style*="rotateY(180deg)"] * {
     color: #e2e2e2 !important;
+  }
+
+  /* Map bright amber colors to readable dark amber in light mode */
+  .text-amber-300,
+  .text-amber-400 {
+    color: #b45309 !important;
   }
 }

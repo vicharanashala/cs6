@@ -19,7 +19,6 @@ const Navbar = ({ currentUser, onLoginClick, onRegisterClick, onAskClick, onLogo
           </span>
         </button>
 
-        {/* Nav Links / Actions */}
         <div className="flex items-center gap-4 sm:gap-6">
           <button
             onClick={onAskClick}
@@ -29,22 +28,12 @@ const Navbar = ({ currentUser, onLoginClick, onRegisterClick, onAskClick, onLogo
             Submit a Question
           </button>
 
-          {currentUser && (
-            <button
-              onClick={onTroubleshootClick}
-              className="flex items-center gap-1.5 rounded-lg border border-amber-500/20 bg-amber-500/10 py-2 px-3.5 text-xs font-semibold text-amber-300 hover:bg-amber-500/20 transition-colors"
-            >
-              <Wrench size={14} />
-              Troubleshooting
-            </button>
-          )}
-
           <button
-            onClick={onToggleTheme}
-            className="flex h-9 w-9 items-center justify-center rounded-lg border border-white/10 bg-surface text-gray-400 hover:text-white transition-colors cursor-pointer"
-            title={theme === "dark" ? "Switch to Light Mode" : "Switch to Dark Mode"}
+            onClick={onTroubleshootClick}
+            className="flex items-center gap-1.5 rounded-lg border border-amber-500/20 bg-amber-500/10 py-2 px-3.5 text-xs font-semibold text-amber-300 hover:bg-amber-500/20 transition-colors"
           >
-            {theme === "dark" ? <Sun size={16} /> : <Moon size={16} />}
+            <Wrench size={14} />
+            Troubleshooting
           </button>
 
           {currentUser ? (
@@ -87,6 +76,14 @@ const Navbar = ({ currentUser, onLoginClick, onRegisterClick, onAskClick, onLogo
               </button>
             </div>
           )}
+
+          <button
+            onClick={onToggleTheme}
+            className="flex h-9 w-9 items-center justify-center rounded-lg border border-white/10 bg-surface text-gray-400 hover:text-white transition-colors cursor-pointer"
+            title={theme === "dark" ? "Switch to Light Mode" : "Switch to Dark Mode"}
+          >
+            {theme === "dark" ? <Sun size={16} /> : <Moon size={16} />}
+          </button>
         </div>
       </div>
     </nav>
