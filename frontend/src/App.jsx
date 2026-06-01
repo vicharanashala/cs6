@@ -22,6 +22,19 @@ function App() {
   const [activeDraft, setActiveDraft] = useState(null);
   const [initialTab, setInitialTab] = useState(null);
 
+  const [theme, setTheme] = useState(() => {
+    return localStorage.getItem("theme") || "dark";
+  });
+
+  useEffect(() => {
+    document.documentElement.setAttribute("data-theme", theme);
+    localStorage.setItem("theme", theme);
+  }, [theme]);
+
+  const toggleTheme = () => {
+    setTheme(prev => (prev === "dark" ? "light" : "dark"));
+  };
+
   useEffect(() => {
     // Load authentication context
     const token = localStorage.getItem("token");
@@ -95,6 +108,8 @@ function App() {
             setViewState("profile");
           }
         }}
+        theme={theme}
+        onToggleTheme={toggleTheme}
       />
 
       {/* Main Content Router */}

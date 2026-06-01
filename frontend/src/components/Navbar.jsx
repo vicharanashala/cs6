@@ -1,6 +1,6 @@
-import { HelpCircle, LogOut, User as UserIcon, Wrench } from "lucide-react";
+import { HelpCircle, LogOut, User as UserIcon, Wrench, Sun, Moon } from "lucide-react";
 
-const Navbar = ({ currentUser, onLoginClick, onRegisterClick, onAskClick, onLogout, onProfileClick, onHomeClick, onTroubleshootClick }) => {
+const Navbar = ({ currentUser, onLoginClick, onRegisterClick, onAskClick, onLogout, onProfileClick, onHomeClick, onTroubleshootClick, theme, onToggleTheme }) => {
   return (
     <nav className="sticky top-0 z-50 border-b border-white/10 bg-surface/80 backdrop-blur-xl">
       <div className="mx-auto flex max-w-6xl items-center justify-between px-6 py-4">
@@ -38,6 +38,14 @@ const Navbar = ({ currentUser, onLoginClick, onRegisterClick, onAskClick, onLogo
               Troubleshooting
             </button>
           )}
+
+          <button
+            onClick={onToggleTheme}
+            className="flex h-9 w-9 items-center justify-center rounded-lg border border-white/10 bg-surface text-gray-400 hover:text-white transition-colors cursor-pointer"
+            title={theme === "dark" ? "Switch to Light Mode" : "Switch to Dark Mode"}
+          >
+            {theme === "dark" ? <Sun size={16} /> : <Moon size={16} />}
+          </button>
 
           {currentUser ? (
             <div className="flex items-center gap-3 sm:gap-4 border-l border-white/10 pl-4 sm:pl-6">
