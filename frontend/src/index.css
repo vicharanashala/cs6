@@ -17,10 +17,10 @@
   --color-primary-900: #364536;
 
   /* Redefine surface background and card system */
-  --color-surface: #1e1e1e;          /* Background (Dark Grey) */
-  --color-surface-dark: #161616;     /* Sidebar / Secondary Background */
-  --color-surface-light: #262626;    /* Card Backgrounds */
-  --color-surface-lighter: #323232;  /* Hover card background */
+  --color-surface: #1a261f;          /* Background (Soft Forest Green) */
+  --color-surface-dark: #131d17;     /* Sidebar / Secondary Background */
+  --color-surface-light: #25342b;    /* Card Backgrounds */
+  --color-surface-lighter: #314539;  /* Hover card background */
 
   /* Override blue to map directly to our new Sage Green colors */
   --color-blue-50: #f0f5f0;
@@ -49,13 +49,13 @@
   --color-indigo-950: #1b251b;
 
   /* Override gray shades for premium readability */
-  --color-gray-50: #f5f5f5;
-  --color-gray-100: #e0e0e0; /* Off-White / Light Grey Text */
-  --color-gray-200: #cccccc;
-  --color-gray-300: #b0b0b0;
-  --color-gray-400: #909090;
-  --color-gray-500: #707070;
-  --color-gray-600: #505050;
+  --color-gray-50: #ffffff;
+  --color-gray-100: #f9f9f9; /* High-contrast light text */
+  --color-gray-200: #f0f0f0;
+  --color-gray-300: #e2e2e2;
+  --color-gray-400: #c5c5c5; /* Clearer secondary labels */
+  --color-gray-500: #a3a3a3;
+  --color-gray-600: #808080;
   --color-gray-700: #3a3a3a;
   --color-gray-800: #262626;
   --color-gray-900: #1e1e1e;
@@ -79,14 +79,14 @@ body {
   height: 6px;
 }
 ::-webkit-scrollbar-track {
-  background: #1e1e1e;
+  background: #1a261f;
 }
 ::-webkit-scrollbar-thumb {
-  background: #262626;
+  background: #25342b;
   border-radius: 4px;
 }
 ::-webkit-scrollbar-thumb:hover {
-  background: #323232;
+  background: #314539;
 }
 
 /* Hide scrollbar utility */

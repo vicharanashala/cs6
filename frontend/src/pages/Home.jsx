@@ -269,7 +269,7 @@ const Home = ({ categories = [], onCategorySelect, onAskClick, onQuestionSelect 
                 <div
                   key={cat._id}
                   onClick={() => onCategorySelect(cat)}
-                  className="flip-card relative rounded-xl border border-white/5 bg-surface-light shadow-sm cursor-pointer"
+                  className="flip-card relative rounded-xl border border-white/5 bg-[#034d33] shadow-sm cursor-pointer"
                 >
                   {/* ── Front Face ── */}
                   <div
@@ -281,10 +281,10 @@ const Home = ({ categories = [], onCategorySelect, onAskClick, onQuestionSelect 
                     </span>
 
                     <div>
-                      <div className="mb-3 flex h-10 w-10 items-center justify-center rounded-lg border border-primary-500/20 bg-primary-500/10 text-primary-400">
+                      <div className="mb-3 flex h-10 w-10 items-center justify-center rounded-lg border border-white/10 bg-white/5 text-gray-300">
                         <Icon size={18} strokeWidth={2} />
                       </div>
-                      <h4 className="text-sm font-extrabold text-white leading-tight">
+                      <h4 className="text-sm font-extrabold text-gray-300 leading-tight">
                         {cat.name}
                       </h4>
                     </div>
@@ -293,7 +293,7 @@ const Home = ({ categories = [], onCategorySelect, onAskClick, onQuestionSelect 
                       <span className="text-[10px] font-bold text-gray-400">
                         {cat.questionCount || 0} solutions
                       </span>
-                      <div className="flex h-6 w-6 items-center justify-center rounded-full bg-surface-lighter text-gray-300 shadow-sm">
+                      <div className="flex h-6 w-6 items-center justify-center rounded-full bg-white/5 text-gray-400 shadow-sm">
                         <ArrowRight size={12} />
                       </div>
                     </div>
@@ -301,13 +301,13 @@ const Home = ({ categories = [], onCategorySelect, onAskClick, onQuestionSelect 
 
                   {/* ── Back Face ── */}
                   <div
-                    className="absolute inset-0 flex flex-col items-start justify-center p-4 rounded-xl bg-gradient-to-br from-surface-light to-surface"
+                    className="absolute inset-0 flex flex-col items-start justify-center p-4 rounded-xl bg-gradient-to-br from-[#034d33] to-[#023c27]"
                     style={{ backfaceVisibility: "hidden", WebkitBackfaceVisibility: "hidden", transform: "rotateY(180deg)" }}
                   >
-                    <p className="text-xs font-medium text-gray-300 leading-relaxed line-clamp-5">
+                    <p className="text-xs font-medium text-gray-400 leading-relaxed line-clamp-5">
                       {cat.description || categoryDescriptions[cat.name] || `Official FAQs for the section: ${cat.name}`}
                     </p>
-                    <div className="mt-4 flex items-center gap-1 text-[10px] font-semibold text-primary-400">
+                    <div className="mt-4 flex items-center gap-1 text-[10px] font-semibold text-gray-400">
                       <span>View FAQs</span>
                       <ArrowRight size={12} />
                     </div>
