@@ -2,58 +2,58 @@
 
 /* ─── Custom Design Tokens ─────────────────────────────── */
 @theme {
-  --font-sans: "Inter", ui-sans-serif, system-ui, sans-serif;
+  --font-sans: "Inter", ui-sans-serif, system-ui, -apple-system, sans-serif;
 
-  /* Redefine primary (for buttons, main highlights) */
-  --color-primary-50: #f0f5f0;
-  --color-primary-100: #dbe9db;
-  --color-primary-200: #c1d7c1;
-  --color-primary-300: #a7c5a7;
-  --color-primary-400: #97b797;
-  --color-primary-500: #87a987; /* Sage Green: Accents & Primary Highlights */
-  --color-primary-600: #769876; /* Hovered Sage Green */
-  --color-primary-700: #5a735a; /* Muted Sage: Secondary UI Elements */
-  --color-primary-800: #485c48;
-  --color-primary-900: #364536;
+  /* Cyan / Teal accent palette */
+  --color-primary-50: #ecfdf5;
+  --color-primary-100: #d1fae5;
+  --color-primary-200: #a7f3d0;
+  --color-primary-300: #6ee7b7;
+  --color-primary-400: #00f0d4;
+  --color-primary-500: #00d4ba;
+  --color-primary-600: #00b8a2;
+  --color-primary-700: #009e8c;
+  --color-primary-800: #007a6d;
+  --color-primary-900: #005c52;
 
-  /* Redefine surface background and card system */
-  --color-surface: #1a261f;          /* Background (Soft Forest Green) */
-  --color-surface-dark: #131d17;     /* Sidebar / Secondary Background */
-  --color-surface-light: #25342b;    /* Card Backgrounds */
-  --color-surface-lighter: #314539;  /* Hover card background */
+  /* Deep dark surfaces */
+  --color-surface: #0a0a0f;
+  --color-surface-dark: #050508;
+  --color-surface-light: #111118;
+  --color-surface-lighter: #1a1a24;
 
-  /* Override blue to map directly to our new Sage Green colors */
-  --color-blue-50: #f0f5f0;
-  --color-blue-100: #dbe9db;
-  --color-blue-200: #c1d7c1;
-  --color-blue-300: #a7c5a7;
-  --color-blue-400: #97b797;
-  --color-blue-500: #87a987;
-  --color-blue-600: #769876;
-  --color-blue-700: #5a735a;
-  --color-blue-800: #485c48;
-  --color-blue-900: #364536;
-  --color-blue-950: #1b251b;
+  /* Map blue directly to Cyan */
+  --color-blue-50: #ecfdf5;
+  --color-blue-100: #d1fae5;
+  --color-blue-200: #a7f3d0;
+  --color-blue-300: #6ee7b7;
+  --color-blue-400: #00f0d4;
+  --color-blue-500: #00d4ba;
+  --color-blue-600: #00b8a2;
+  --color-blue-700: #009e8c;
+  --color-blue-800: #007a6d;
+  --color-blue-900: #005c52;
+  --color-blue-950: #032b26;
 
-  /* Override indigo to map directly to our new Sage Green colors */
-  --color-indigo-50: #f0f5f0;
-  --color-indigo-100: #dbe9db;
-  --color-indigo-200: #c1d7c1;
-  --color-indigo-300: #a7c5a7;
-  --color-indigo-400: #97b797;
-  --color-indigo-500: #87a987;
-  --color-indigo-600: #769876;
-  --color-indigo-700: #5a735a;
-  --color-indigo-800: #485c48;
-  --color-indigo-900: #364536;
-  --color-indigo-950: #1b251b;
-
-  /* Override gray shades for premium readability */
+  /* Map indigo directly to Cyan */
+  --color-indigo-50: #ecfdf5;
+  --color-indigo-100: #d1fae5;
+  --color-indigo-200: #a7f3d0;
+  --color-indigo-300: #6ee7b7;
+  --color-indigo-400: #00f0d4;
+  --color-indigo-500: #00d4ba;
+  --color-indigo-600: #00b8a2;
+  --color-indigo-700: #009e8c;
+  --color-indigo-800: #007a6d;
+  --color-indigo-900: #005c52;
+  --color-indigo-950: #032b26;
+  
+  /* Gray shades */
   --color-gray-50: #ffffff;
-  --color-gray-100: #f9f9f9; /* High-contrast light text */
+  --color-gray-100: #f9f9f9;
   --color-gray-200: #f0f0f0;
   --color-gray-300: #e2e2e2;
-  --color-gray-400: #c5c5c5; /* Clearer secondary labels */
+  --color-gray-400: #c5c5c5;
   --color-gray-500: #a3a3a3;
   --color-gray-600: #808080;
   --color-gray-700: #3a3a3a;
@@ -73,20 +73,83 @@ body {
   flex-direction: column;
 }
 
+/* ─── Custom Animations ────────────────────────────────── */
+@keyframes glow-pulse {
+  0%, 100% { opacity: 0.4; }
+  50% { opacity: 0.7; }
+}
+
+@keyframes subtle-float {
+  0%, 100% { transform: translateY(0); }
+  50% { transform: translateY(-4px); }
+}
+
+@keyframes fade-in-up {
+  from { opacity: 0; transform: translateY(12px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+.animate-glow-pulse {
+  animation: glow-pulse 3s ease-in-out infinite;
+}
+
+.animate-subtle-float {
+  animation: subtle-float 4s ease-in-out infinite;
+}
+
+.animate-fade-in-up {
+  animation: fade-in-up 0.5s ease-out forwards;
+}
+
+/* ─── Gradient Text ────────────────────────────────────── */
+.text-gradient-cyan {
+  background: linear-gradient(135deg, #ffffff 0%, #00f0d4 50%, #00d4ba 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
+
+.text-gradient-hero {
+  background: linear-gradient(180deg, #ffffff 30%, rgba(0, 240, 212, 0.7) 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
+
+/* ─── Glow Effects ─────────────────────────────────────── */
+.glow-cyan {
+  box-shadow: 0 0 20px rgba(0, 240, 212, 0.15), 0 0 60px rgba(0, 240, 212, 0.05);
+}
+
+.glow-cyan-subtle {
+  box-shadow: 0 0 15px rgba(0, 240, 212, 0.08);
+}
+
+.border-glow-cyan {
+  border-color: rgba(0, 240, 212, 0.25);
+  box-shadow: 0 0 12px rgba(0, 240, 212, 0.08), inset 0 0 12px rgba(0, 240, 212, 0.02);
+}
+
+/* ─── Hero Background ─────────────────────────────────── */
+.hero-gradient {
+  background: radial-gradient(ellipse 80% 50% at 50% -10%, rgba(0, 240, 212, 0.12) 0%, transparent 60%),
+              radial-gradient(ellipse 60% 40% at 50% 0%, rgba(0, 180, 160, 0.08) 0%, transparent 50%);
+}
+
 /* ─── Custom Scrollbar ─────────────────────────────────── */
 ::-webkit-scrollbar {
   width: 6px;
   height: 6px;
 }
 ::-webkit-scrollbar-track {
-  background: #1a261f;
+  background: transparent;
 }
 ::-webkit-scrollbar-thumb {
-  background: #25342b;
-  border-radius: 4px;
+  background: rgba(0, 240, 212, 0.1);
+  border-radius: 99px;
 }
 ::-webkit-scrollbar-thumb:hover {
-  background: #314539;
+  background: rgba(0, 240, 212, 0.2);
 }
 
 /* Hide scrollbar utility */
@@ -98,12 +161,43 @@ body {
   scrollbar-width: none;  /* Firefox */
 }
 
-/* ─── Line Clamp Fallback ──────────────────────────────── */
+/* ─── Utilities ────────────────────────────────────────── */
 .line-clamp-5 {
   display: -webkit-box;
   -webkit-line-clamp: 5;
   -webkit-box-orient: vertical;
   overflow: hidden;
+}
+
+/* ─── Glass Effect ─────────────────────────────────────── */
+.glass {
+  background: rgba(17, 17, 24, 0.7);
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
+}
+
+/* ─── Button Hover Glow ────────────────────────────────── */
+.btn-cyan {
+  background: linear-gradient(135deg, #00f0d4, #00d4ba);
+  color: #0a0a0f;
+  font-weight: 600;
+  transition: all 0.3s ease;
+}
+.btn-cyan:hover {
+  box-shadow: 0 0 20px rgba(0, 240, 212, 0.3), 0 0 40px rgba(0, 240, 212, 0.1);
+  transform: translateY(-1px);
+}
+
+.btn-outline-cyan {
+  border: 1px solid rgba(0, 240, 212, 0.3);
+  color: #00f0d4;
+  background: rgba(0, 240, 212, 0.05);
+  transition: all 0.3s ease;
+}
+.btn-outline-cyan:hover {
+  background: rgba(0, 240, 212, 0.1);
+  border-color: rgba(0, 240, 212, 0.5);
+  box-shadow: 0 0 15px rgba(0, 240, 212, 0.1);
 }
 
 /* ─── Flip Card with Transition Delay ─────────────────── */

@@ -452,7 +452,7 @@ const QuestionDetail = ({ question, onBack, currentUser, onAuthRequired }) => {
                 value={editTitle}
                 onChange={(e) => setEditTitle(e.target.value)}
                 required
-                className="w-full rounded-lg border border-white/10 bg-surface py-2.5 px-4 text-sm text-white focus:border-primary-500 focus:outline-none"
+                className="w-full rounded-lg border border-white/10 bg-surface py-2.5 px-4 text-sm text-white focus:border-primary-400/50 focus:outline-none"
               />
             </div>
 
@@ -463,7 +463,7 @@ const QuestionDetail = ({ question, onBack, currentUser, onAuthRequired }) => {
                 onChange={(e) => setEditBody(e.target.value)}
                 required
                 rows={6}
-                className="w-full rounded-lg border border-white/10 bg-surface py-2.5 px-4 text-sm text-white focus:border-primary-500 focus:outline-none resize-none"
+                className="w-full rounded-lg border border-white/10 bg-surface py-2.5 px-4 text-sm text-white focus:border-primary-400/50 focus:outline-none resize-none"
               />
             </div>
 
@@ -474,7 +474,7 @@ const QuestionDetail = ({ question, onBack, currentUser, onAuthRequired }) => {
                 value={editTags}
                 onChange={(e) => setEditTags(e.target.value)}
                 placeholder="e.g. placements, internships, career"
-                className="w-full rounded-lg border border-white/10 bg-surface py-2.5 px-4 text-sm text-white focus:border-primary-500 focus:outline-none"
+                className="w-full rounded-lg border border-white/10 bg-surface py-2.5 px-4 text-sm text-white focus:border-primary-400/50 focus:outline-none"
               />
             </div>
 
@@ -488,7 +488,7 @@ const QuestionDetail = ({ question, onBack, currentUser, onAuthRequired }) => {
               </button>
               <button
                 type="submit"
-                className="rounded-lg bg-primary-500 hover:bg-primary-600 py-2 px-5 text-xs font-semibold text-white transition-colors"
+                className="rounded-lg btn-cyan py-2 px-5 text-xs font-semibold text-white transition-colors"
               >
                 Save Changes
               </button>
@@ -739,7 +739,7 @@ const QuestionDetail = ({ question, onBack, currentUser, onAuthRequired }) => {
                       onChange={(e) => setEditAnswerBody(e.target.value)}
                       required
                       rows={4}
-                      className="w-full rounded-lg border border-white/10 bg-surface py-2 px-3.5 text-sm text-white placeholder-gray-600 focus:border-primary-500 focus:outline-none resize-none"
+                      className="w-full rounded-lg border border-white/10 bg-surface py-2 px-3.5 text-sm text-white placeholder-gray-600 focus:border-primary-400/50 focus:outline-none resize-none"
                     />
                     <div className="flex gap-2 justify-end">
                       <button
@@ -751,7 +751,7 @@ const QuestionDetail = ({ question, onBack, currentUser, onAuthRequired }) => {
                       </button>
                       <button
                         type="submit"
-                        className="rounded bg-primary-500 hover:bg-primary-600 py-1.5 px-3.5 text-[10px] font-semibold text-white transition-colors"
+                        className="rounded btn-cyan py-1.5 px-3.5 text-[10px] font-semibold text-white transition-colors"
                       >
                         Save
                       </button>
@@ -936,7 +936,7 @@ const QuestionDetail = ({ question, onBack, currentUser, onAuthRequired }) => {
             maxLength={2000}
             rows={4}
             placeholder="Provide a detailed, helpful answer containing verified resources or advice (minimum 30 characters)..."
-            className="w-full rounded-lg border border-white/10 bg-surface py-2.5 px-4 text-sm text-white placeholder-gray-600 focus:border-primary-500 focus:outline-none resize-none"
+            className="w-full rounded-lg border border-white/10 bg-surface py-2.5 px-4 text-sm text-white placeholder-gray-600 focus:border-primary-400/50 focus:outline-none resize-none"
           />
           
           <div className="flex items-center justify-between">
@@ -989,7 +989,7 @@ const QuestionDetail = ({ question, onBack, currentUser, onAuthRequired }) => {
                   value={reportReason}
                   onChange={(e) => setReportReason(e.target.value)}
                   required
-                  className="w-full rounded-lg border border-white/10 bg-surface py-2.5 px-3 text-sm text-white focus:border-primary-500 focus:outline-none"
+                  className="w-full rounded-lg border border-white/10 bg-surface py-2.5 px-3 text-sm text-white focus:border-primary-400/50 focus:outline-none"
                 >
                   <option value="spam" className="text-white bg-surface-light">Spam</option>
                   <option value="abuse" className="text-white bg-surface-light">Abuse / Harassment</option>
@@ -1008,7 +1008,7 @@ const QuestionDetail = ({ question, onBack, currentUser, onAuthRequired }) => {
                   onChange={(e) => setReportDesc(e.target.value)}
                   rows={4}
                   placeholder="Provide additional details or context about why you are reporting this content..."
-                  className="w-full rounded-lg border border-white/10 bg-surface py-2.5 px-4 text-sm text-white placeholder-gray-600 focus:border-primary-500 focus:outline-none resize-none"
+                  className="w-full rounded-lg border border-white/10 bg-surface py-2.5 px-4 text-sm text-white placeholder-gray-600 focus:border-primary-400/50 focus:outline-none resize-none"
                 />
               </div>
 

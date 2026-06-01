@@ -387,7 +387,7 @@ const AuthModal = ({ isOpen, onClose, onAuthSuccess, initialMode = "login" }) =>
                   onChange={(e) => { setForgotEmail(e.target.value); setError(""); }}
                   required
                   placeholder="riya@example.com"
-                  className="w-full rounded-lg border border-white/10 bg-surface py-2.5 pl-10 pr-4 text-sm text-white placeholder-gray-600 focus:border-primary-500 focus:outline-none"
+                  className="w-full rounded-lg border border-white/10 bg-surface py-2.5 pl-10 pr-4 text-sm text-white placeholder-gray-600 focus:border-primary-400/50 focus:outline-none"
                 />
               </div>
             </div>
@@ -423,7 +423,7 @@ const AuthModal = ({ isOpen, onClose, onAuthSuccess, initialMode = "login" }) =>
                       digit
                         ? "border-primary-500/60 bg-primary-500/10 text-white shadow-lg shadow-primary-500/10"
                         : "border-white/10 bg-surface text-white"
-                    } focus:border-primary-500 focus:shadow-lg focus:shadow-primary-500/20`}
+                    } focus:border-primary-400/50 focus:shadow-lg focus:shadow-primary-500/20`}
                     style={{ fontSize: "1.25rem" }}
                   />
                 ))}
@@ -473,7 +473,7 @@ const AuthModal = ({ isOpen, onClose, onAuthSuccess, initialMode = "login" }) =>
                   onChange={(e) => { setNewPassword(e.target.value); setError(""); }}
                   required
                   placeholder="Min 8 chars, 1 uppercase, 1 digit"
-                  className="w-full rounded-lg border border-white/10 bg-surface py-2.5 pl-10 pr-4 text-sm text-white placeholder-gray-600 focus:border-primary-500 focus:outline-none"
+                  className="w-full rounded-lg border border-white/10 bg-surface py-2.5 pl-10 pr-4 text-sm text-white placeholder-gray-600 focus:border-primary-400/50 focus:outline-none"
                 />
               </div>
             </div>
@@ -490,7 +490,7 @@ const AuthModal = ({ isOpen, onClose, onAuthSuccess, initialMode = "login" }) =>
                   onChange={(e) => { setConfirmPassword(e.target.value); setError(""); }}
                   required
                   placeholder="Re-enter your new password"
-                  className="w-full rounded-lg border border-white/10 bg-surface py-2.5 pl-10 pr-4 text-sm text-white placeholder-gray-600 focus:border-primary-500 focus:outline-none"
+                  className="w-full rounded-lg border border-white/10 bg-surface py-2.5 pl-10 pr-4 text-sm text-white placeholder-gray-600 focus:border-primary-400/50 focus:outline-none"
                 />
               </div>
               {confirmPassword && newPassword !== confirmPassword && (
@@ -582,7 +582,7 @@ const AuthModal = ({ isOpen, onClose, onAuthSuccess, initialMode = "login" }) =>
                         onChange={handleChange}
                         required
                         placeholder="riyasharma"
-                        className="w-full rounded-lg border border-white/10 bg-surface py-2.5 pl-10 pr-4 text-sm text-white placeholder-gray-600 focus:border-primary-500 focus:outline-none"
+                        className="w-full rounded-lg border border-white/10 bg-surface py-2.5 pl-10 pr-4 text-sm text-white placeholder-gray-600 focus:border-primary-400/50 focus:outline-none"
                       />
                     </div>
                   </div>
@@ -600,7 +600,7 @@ const AuthModal = ({ isOpen, onClose, onAuthSuccess, initialMode = "login" }) =>
                         onChange={handleChange}
                         required
                         placeholder="Riya Sharma"
-                        className="w-full rounded-lg border border-white/10 bg-surface py-2.5 pl-10 pr-4 text-sm text-white placeholder-gray-600 focus:border-primary-500 focus:outline-none"
+                        className="w-full rounded-lg border border-white/10 bg-surface py-2.5 pl-10 pr-4 text-sm text-white placeholder-gray-600 focus:border-primary-400/50 focus:outline-none"
                       />
                     </div>
                   </div>
@@ -616,7 +616,7 @@ const AuthModal = ({ isOpen, onClose, onAuthSuccess, initialMode = "login" }) =>
                         value={formData.internshipStartDate}
                         onChange={handleChange}
                         required
-                        className="w-full rounded-lg border border-white/10 bg-surface py-2.5 px-4 text-sm text-white focus:border-primary-500 focus:outline-none"
+                        className="w-full rounded-lg border border-white/10 bg-surface py-2.5 px-4 text-sm text-white focus:border-primary-400/50 focus:outline-none"
                       />
                     </div>
                   </div>
@@ -636,7 +636,7 @@ const AuthModal = ({ isOpen, onClose, onAuthSuccess, initialMode = "login" }) =>
                     onChange={handleChange}
                     required
                     placeholder="riya@example.com"
-                    className="w-full rounded-lg border border-white/10 bg-surface py-2.5 pl-10 pr-4 text-sm text-white placeholder-gray-600 focus:border-primary-500 focus:outline-none"
+                    className="w-full rounded-lg border border-white/10 bg-surface py-2.5 pl-10 pr-4 text-sm text-white placeholder-gray-600 focus:border-primary-400/50 focus:outline-none"
                   />
                 </div>
               </div>
@@ -654,7 +654,7 @@ const AuthModal = ({ isOpen, onClose, onAuthSuccess, initialMode = "login" }) =>
                     onChange={handleChange}
                     required
                     placeholder={isLogin ? "••••••••" : "Min 8 chars, 1 uppercase, 1 digit"}
-                    className="w-full rounded-lg border border-white/10 bg-surface py-2.5 pl-10 pr-4 text-sm text-white placeholder-gray-600 focus:border-primary-500 focus:outline-none"
+                    className="w-full rounded-lg border border-white/10 bg-surface py-2.5 pl-10 pr-4 text-sm text-white placeholder-gray-600 focus:border-primary-400/50 focus:outline-none"
                   />
                 </div>
 

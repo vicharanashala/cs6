@@ -259,7 +259,7 @@ const QuestionModal = ({ isOpen, onClose, categories = [], onQuestionCreated, dr
               value={formData.category}
               onChange={handleChange}
               required
-              className="w-full rounded-lg border border-white/10 bg-surface py-2.5 px-3 text-sm text-white focus:border-primary-500 focus:outline-none"
+              className="w-full rounded-lg border border-white/10 bg-surface py-2.5 px-3 text-sm text-white focus:border-primary-400/50 focus:outline-none"
             >
               <option value="" disabled className="text-gray-600">Select category...</option>
               {categories.map(cat => (
@@ -285,7 +285,7 @@ const QuestionModal = ({ isOpen, onClose, categories = [], onQuestionCreated, dr
                 placeholder="Enter custom category name..."
                 required
                 maxLength={60}
-                className="w-full rounded-lg border border-primary-500/50 bg-primary-500/10 py-2.5 px-3 text-sm text-white focus:border-primary-500 focus:outline-none"
+                className="w-full rounded-lg border border-primary-500/50 bg-primary-500/10 py-2.5 px-3 text-sm text-white focus:border-primary-400/50 focus:outline-none"
               />
             </div>
           )}
@@ -305,7 +305,7 @@ const QuestionModal = ({ isOpen, onClose, categories = [], onQuestionCreated, dr
                 minLength={10}
                 maxLength={150}
                 placeholder="What is the deadline for the internship registration?"
-                className="w-full rounded-lg border border-white/10 bg-surface py-2.5 pl-10 pr-4 text-sm text-white placeholder-gray-600 focus:border-primary-500 focus:outline-none"
+                className="w-full rounded-lg border border-white/10 bg-surface py-2.5 pl-10 pr-4 text-sm text-white placeholder-gray-600 focus:border-primary-400/50 focus:outline-none"
               />
             </div>
             <p className="mt-1 text-[10px] text-gray-500 text-right">
@@ -369,7 +369,7 @@ const QuestionModal = ({ isOpen, onClose, categories = [], onQuestionCreated, dr
               minLength={20}
               rows={4}
               placeholder="Provide context, links, or specific details to help others give high-quality answers..."
-              className="w-full rounded-lg border border-white/10 bg-surface py-2.5 px-4 text-sm text-white placeholder-gray-600 focus:border-primary-500 focus:outline-none resize-none"
+              className="w-full rounded-lg border border-white/10 bg-surface py-2.5 px-4 text-sm text-white placeholder-gray-600 focus:border-primary-400/50 focus:outline-none resize-none"
             />
             <p className="mt-1 text-[10px] text-gray-500 text-right">
               {formData.body.length} characters (min 20)
@@ -388,7 +388,7 @@ const QuestionModal = ({ isOpen, onClose, categories = [], onQuestionCreated, dr
                 value={formData.tags}
                 onChange={handleChange}
                 placeholder="internship, deadline, registration"
-                className="w-full rounded-lg border border-white/10 bg-surface py-2.5 pl-10 pr-4 text-sm text-white placeholder-gray-600 focus:border-primary-500 focus:outline-none"
+                className="w-full rounded-lg border border-white/10 bg-surface py-2.5 pl-10 pr-4 text-sm text-white placeholder-gray-600 focus:border-primary-400/50 focus:outline-none"
               />
             </div>
             <p className="mt-1 text-[10px] text-gray-500">

@@ -9,19 +9,19 @@ import api from "../api/axios";
 // Static mapping for category icons and calibrated WCAG AA contrast colors
 const getCategoryMeta = (index) => {
   const meta = [
-    { icon: UserPlus, colorClass: "bg-violet-50 text-violet-700 border-violet-200" },
-    { icon: DollarSign, colorClass: "bg-emerald-50 text-emerald-700 border-emerald-200" },
-    { icon: BookOpen, colorClass: "bg-blue-50 text-blue-700 border-blue-200" },
-    { icon: HomeIcon, colorClass: "bg-orange-50 text-orange-700 border-orange-200" },
-    { icon: Briefcase, colorClass: "bg-indigo-50 text-indigo-700 border-indigo-200" },
-    { icon: FileText, colorClass: "bg-red-50 text-red-700 border-red-200" },
-    { icon: Building, colorClass: "bg-teal-50 text-teal-700 border-teal-200" },
-    { icon: Award, colorClass: "bg-amber-50 text-amber-800 border-amber-200" },
-    { icon: Cpu, colorClass: "bg-cyan-50 text-cyan-700 border-cyan-200" },
-    { icon: Heart, colorClass: "bg-rose-50 text-rose-700 border-rose-200" },
-    { icon: Library, colorClass: "bg-sky-50 text-sky-700 border-sky-200" },
-    { icon: Compass, colorClass: "bg-fuchsia-50 text-fuchsia-700 border-fuchsia-200" },
-    { icon: Globe, colorClass: "bg-yellow-50 text-yellow-700 border-yellow-200" }
+    { icon: UserPlus, colorClass: "text-primary-400 bg-primary-500/10 border-primary-500/20" },
+    { icon: DollarSign, colorClass: "text-emerald-400 bg-emerald-500/10 border-emerald-500/20" },
+    { icon: BookOpen, colorClass: "text-cyan-400 bg-cyan-500/10 border-cyan-500/20" },
+    { icon: HomeIcon, colorClass: "text-teal-400 bg-teal-500/10 border-teal-500/20" },
+    { icon: Briefcase, colorClass: "text-primary-300 bg-primary-400/10 border-primary-400/20" },
+    { icon: FileText, colorClass: "text-emerald-300 bg-emerald-400/10 border-emerald-400/20" },
+    { icon: Building, colorClass: "text-teal-300 bg-teal-400/10 border-teal-400/20" },
+    { icon: Award, colorClass: "text-primary-400 bg-primary-500/10 border-primary-500/20" },
+    { icon: Cpu, colorClass: "text-cyan-300 bg-cyan-400/10 border-cyan-400/20" },
+    { icon: Heart, colorClass: "text-primary-300 bg-primary-400/10 border-primary-400/20" },
+    { icon: Library, colorClass: "text-emerald-400 bg-emerald-500/10 border-emerald-500/20" },
+    { icon: Compass, colorClass: "text-teal-400 bg-teal-500/10 border-teal-500/20" },
+    { icon: Globe, colorClass: "text-cyan-400 bg-cyan-500/10 border-cyan-500/20" }
   ];
   return meta[index % meta.length];
 };
@@ -92,54 +92,58 @@ const Home = ({ categories = [], onCategorySelect, onAskClick, onQuestionSelect 
     <div className="mx-auto max-w-6xl px-6 py-16">
       
       {/* ─── Hero Section ────────────────────────────────────────── */}
-      <section className="mb-16 text-center max-w-3xl mx-auto" id="hero">
-        <h1 className="mb-4 text-4xl sm:text-5xl font-black tracking-tight leading-tight text-white">
-          Find answers to your{" "}
-          <span className="bg-gradient-to-r from-primary-300 to-primary-400 bg-clip-text text-transparent">
-            Questions,
-          </span>{" "}
-          <span className="bg-gradient-to-r from-[#87A987] via-[#87A987]/75 to-[#87A987]/45 bg-clip-text text-transparent">
-            Instantly.
+      <section className="mb-16 text-center hero-gradient rounded-3xl py-16 px-6 relative overflow-hidden max-w-4xl mx-auto" id="hero">
+        <div className="absolute top-0 left-1/2 -translate-x-1/2 w-96 h-48 bg-primary-400/10 rounded-full blur-3xl animate-glow-pulse pointer-events-none" />
+        <div className="relative z-10">
+          <span className="inline-block mb-5 text-[11px] uppercase tracking-[0.2em] text-primary-400 font-medium px-4 py-1.5 rounded-full border border-primary-500/20 bg-primary-500/5">
+            Everything you need to know
           </span>
-        </h1>
-        
-        <p className="mx-auto max-w-xl text-sm sm:text-base text-gray-400 mb-8 font-normal leading-relaxed">
-          Search verified knowledge bases, find immediate resolutions to common campus issues, or contribute your own queries to the student crowdsourced portal.
-        </p>
+          <h1 className="mb-4 text-4xl sm:text-5xl font-black tracking-tight leading-tight text-white">
+            Find answers to your{" "}
+            <br className="hidden sm:block" />
+            <span className="text-gradient-hero">
+              Questions, Instantly.
+            </span>
+          </h1>
+          
+          <p className="mx-auto max-w-xl text-sm sm:text-base text-gray-400 mb-8 font-normal leading-relaxed">
+            Search verified knowledge bases, find immediate resolutions to common campus issues, or contribute your own queries to the student crowdsourced portal.
+          </p>
 
-        {/* Hero Search Bar */}
-        <div className="relative max-w-lg mx-auto shadow-2xl rounded-xl">
-          <Search className="absolute top-4 left-4 h-5 w-5 text-gray-500" />
-          <input
-            type="text"
-            value={searchQuery}
-            onChange={(e) => setSearchQuery(e.target.value)}
-            placeholder="Type keywords to filter categories..."
-            className="w-full rounded-xl border border-white/10 bg-surface-light py-3.5 pl-12 pr-16 text-sm text-white placeholder-gray-600 focus:border-primary-500 focus:outline-none"
-          />
-          <button className="absolute right-2 top-2 rounded-lg bg-primary-500 p-2 text-white hover:bg-primary-600 active:scale-95 transition-all duration-300">
-            <Search size={16} />
-          </button>
-        </div>
+          {/* Hero Search Bar */}
+          <div className="relative max-w-xl mx-auto shadow-2xl rounded-xl">
+            <Search className="absolute top-4 left-4 h-5 w-5 text-gray-500" />
+            <input
+              type="text"
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              placeholder="Type keywords to filter categories..."
+              className="w-full rounded-xl border border-white/10 bg-surface-light/80 backdrop-blur-sm py-3.5 pl-12 pr-16 text-sm text-white placeholder-gray-600 focus:border-primary-500/40 focus:outline-none focus:glow-cyan-subtle transition-all"
+            />
+            <button className="absolute right-2 top-2 rounded-lg btn-cyan p-2 active:scale-95 transition-all duration-300">
+              <Search size={16} />
+            </button>
+          </div>
 
-        {/* ─── Feature Badges ────────────────────────────────────────── */}
-        <div className="mt-8 flex flex-wrap justify-center gap-3">
-          {[
-            { label: "Quick Answers", icon: Zap },
-            { label: "Trusted Information", icon: ShieldCheck },
-            { label: "24/7 Help", icon: HelpCircle }
-          ].map((badge) => {
-            const Icon = badge.icon;
-            return (
-              <span 
-                key={badge.label} 
-                className="inline-flex items-center gap-1.5 rounded-full border border-white/5 bg-surface-light/40 px-4.5 py-1.5 text-xs font-medium text-gray-300 backdrop-blur-sm"
-              >
-                <Icon size={12} className="text-primary-400" />
-                {badge.label}
-              </span>
-            );
-          })}
+          {/* ─── Feature Badges ────────────────────────────────────────── */}
+          <div className="mt-8 flex flex-wrap justify-center gap-3">
+            {[
+              { label: "Quick Answers", icon: Zap },
+              { label: "Trusted Information", icon: ShieldCheck },
+              { label: "24/7 Help", icon: HelpCircle }
+            ].map((badge) => {
+              const Icon = badge.icon;
+              return (
+                <span 
+                  key={badge.label} 
+                  className="inline-flex items-center gap-1.5 rounded-full border border-primary-500/10 bg-primary-500/5 px-4 py-1.5 text-xs font-medium text-gray-300 backdrop-blur-sm"
+                >
+                  <Icon size={12} className="text-primary-400" />
+                  {badge.label}
+                </span>
+              );
+            })}
+          </div>
         </div>
       </section>
 
@@ -269,7 +273,7 @@ const Home = ({ categories = [], onCategorySelect, onAskClick, onQuestionSelect 
                 <div
                   key={cat._id}
                   onClick={() => onCategorySelect(cat)}
-                  className="flip-card relative rounded-xl border border-white/5 bg-[#034d33] shadow-sm cursor-pointer"
+                  className="flip-card relative rounded-xl border border-white/5 bg-surface-light hover:border-primary-500/15 shadow-sm cursor-pointer"
                 >
                   {/* ── Front Face ── */}
                   <div
@@ -281,7 +285,7 @@ const Home = ({ categories = [], onCategorySelect, onAskClick, onQuestionSelect 
                     </span>
 
                     <div>
-                      <div className="mb-3 flex h-10 w-10 items-center justify-center rounded-lg border border-white/10 bg-white/5 text-gray-300">
+                      <div className={`mb-3 flex h-10 w-10 items-center justify-center rounded-lg border ${colorClass}`}>
                         <Icon size={18} strokeWidth={2} />
                       </div>
                       <h4 className="text-sm font-extrabold text-gray-300 leading-tight">
@@ -293,7 +297,7 @@ const Home = ({ categories = [], onCategorySelect, onAskClick, onQuestionSelect 
                       <span className="text-[10px] font-bold text-gray-400">
                         {cat.questionCount || 0} solutions
                       </span>
-                      <div className="flex h-6 w-6 items-center justify-center rounded-full bg-white/5 text-gray-400 shadow-sm">
+                      <div className="flex h-6 w-6 items-center justify-center rounded-full bg-surface-light/5 text-gray-400 shadow-sm">
                         <ArrowRight size={12} />
                       </div>
                     </div>
