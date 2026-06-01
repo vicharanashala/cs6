@@ -210,22 +210,18 @@ NODE_ENV=development
 
 MONGODB_URI=
 
-JWT_SECRET=
-JWT_REFRESH_SECRET=
+JWT_SECRET=your_jwt_secret_key_here
+JWT_EXPIRES_IN=7d
 
-JWT_EXPIRES_IN=
-JWT_REFRESH_EXPIRES_IN=
+# Cloudinary CDN Configuration
+CLOUDINARY_CLOUD_NAME=your_cloudinary_cloud_name_here
+CLOUDINARY_API_KEY=your_cloudinary_api_key_here
+CLOUDINARY_API_SECRET=your_cloudinary_api_secret_here
 
-CLOUDINARY_CLOUD_NAME=
-CLOUDINARY_API_KEY=
-CLOUDINARY_API_SECRET=
-
-HUGGINGFACE_API_KEY=
-
-FRONTEND_URL=http://localhost:5173
-
+# Gemini API Key
 GEMINI_API_KEY=
 
+# SMTP configuration
 SMTP_HOST=smtp.gmail.com
 SMTP_PORT=587
 SMTP_USER=your-email@gmail.com
