@@ -148,6 +148,22 @@ graph TD
 - **Review Defaults**: Student answers are saved in `pending` status. Questions remain unresolved until the admin reviews and approves the content.
 - **Review Actions**: Admin panel includes buttons to Approve, Reject, and Mark Best on the pending reviews list. Selecting "Mark Best" automatically sets the answer to `visible` / `approved`, sets `isBestAnswer = true`, and resolves the parent question.
 
+### IX. Authentication Hardening & MFA via TOTP
+- **Token Security**: Implemented short-lived (15 min) JWT access tokens combined with secure, rotation-based refresh tokens.
+- **MFA Flow**: Integrated Multi-Factor Authentication via TOTP (using Speakeasy). Users can enable/disable MFA dynamically, generating QR codes to pair with Google Authenticator.
+- **Lockout Mechanism**: Locked user accounts for 15 minutes after 5 consecutive failed login attempts to prevent brute-force attacks.
+
+### X. CSRF and CORS Security Integration
+- **CORS Config**: Locked down server origins dynamically matching localhost ports and supported `credentials: true` to support secure cookie handshakes.
+- **Double-Submit Cookie CSRF**: Implemented CSRF protection on all state-changing endpoints (POST, PUT, DELETE, PATCH) via backend validation and frontend Axios interceptors.
+- **Lazy Fetching & Retry**: Automated lazy fetching of the CSRF token on the client, with an automatic retry block on CSRF 403 errors to fetch a fresh token and retry the failed request.
+
+### XI. Light/Dark Theme Toggling & Symmetrical UI Mapping
+- **Theme Preferences**: Created a persistent toggling hook that stores user selections in `localStorage` and sets the `data-theme` attribute on the root html element.
+- **Symmetric Variable Mapping**: Swapped background surface colors and text gray scale variables dynamically in `index.css`.
+- **Button Visibility Polish**: Overrode standard `.text-white` classes in light mode to turn dark on light backgrounds while maintaining white text on dark buttons (red, emerald, etc.). Mapped amber text to `#b45309` for readable warning and troubleshooting tags.
+- **Dashboard Grid Match**: Updated dashboard category cards to render theme-aware fronts that flip to green backfaces on hover.
+
 ---
 
 ## 5. Challenges Faced & Solutions
@@ -187,3 +203,20 @@ graph TD
 ### 9. Syntax Parse Errors from UI Layout Restructuring
 - **Problem**: After modifying `MyProfile.jsx` to restructure the layout, the compiler threw a syntax parsing error `Unexpected token }` on line 1488 due to an unmatched closing brace bracket mismatch.
 - **Solution**: Corrected the closing brace syntax to `)}` and successfully ran the bundle builder.
+
+### 10. Duplicate Refresh Token Key Index Conflicts
+- **Problem**: Generating refresh tokens in the same second during simultaneous requests caused MongoDB to throw duplicate key index conflicts on index constraints.
+- **Solution**: Embedded a cryptographic `jti` (JWT ID) claim using `crypto.randomBytes(16)` into the refresh token payload to guarantee document uniqueness in the database collection.
+
+### 11. CSRF Token Validation Failure during Auth Handshakes
+- **Problem**: Multi-origin client handshakes caused state-changing actions (like POST/PUT) to fail with 403 CSRF validation errors because credentials were not transmitted or token headers were missing.
+- **Solution**: Configured `withCredentials: true` on Axios, added lazy token fetching, and configured a client-side interceptor that fetches a fresh CSRF token and retries failed requests once automatically.
+
+### 12. Low-Contrast Button Text & Icons in Light Mode
+- **Problem**: The light mode override mapped `.text-white` classes to dark text, but explicitly excluded buttons (using `:not(button)`) to prevent dark-colored action buttons from breaking. This caused standard light-background buttons (like "Submit a Question") to render white text on a white/light gray background.
+- **Solution**: Removed `:not(button)` from the CSS rule and instead targeted exclusions using specific background color prefixes (`:not([class*="bg-primary-"]):not([class*="bg-red-"]):not([class*="bg-emerald-"])`, etc.). This ensures buttons with light backgrounds get dark text, while keeping white text on dark-background buttons.
+
+### 13. Dashboard Category Card Layout Inconsistency
+- **Problem**: Category cards inside the user profile view (`MyProfile.jsx`) remained dark green on the front face in light mode, failing to map to the white/light theme colors and resulting in an inconsistent UI between the landing and profile pages.
+- **Solution**: Replaced the hardcoded dark green background classes in the profile categories grid with theme-aware `bg-surface-light` containers and colorized icon classes, matching the landing page cards while preserving the flip-on-hover green gradient on the back face.
+
