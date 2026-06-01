@@ -25,7 +25,10 @@ const generateAccessToken = (user) => {
 
 const generateRefreshToken = async (user) => {
   const token = jwt.sign(
-    { userId: user._id },
+    { 
+      userId: user._id,
+      jti: crypto.randomBytes(16).toString("hex")
+    },
     process.env.JWT_SECRET, // using same secret for simplicity, or separate if defined
     { expiresIn: '7d' }
   );
