@@ -105,3 +105,16 @@ body {
   -webkit-box-orient: vertical;
   overflow: hidden;
 }
+
+/* ─── Flip Card with Transition Delay ─────────────────── */
+.flip-card {
+  height: 160px;
+  perspective: 1000px;
+  transform-style: preserve-3d;
+  transition: transform 0.6s cubic-bezier(0.4, 0, 0.2, 1);
+  transition-delay: 0.25s; /* Delay flip to avoid jittery animations when fast hovering */
+}
+
+.flip-card:hover {
+  transform: rotateY(180deg);
+}

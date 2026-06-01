@@ -1175,30 +1175,27 @@ const MyProfile = ({ currentUser, onBack, onQuestionClick, onAskClick, initialTa
                             <div
                               key={cat._id}
                               onClick={() => onCategorySelect(cat)}
-                              className="relative rounded-xl border border-slate-100 bg-white shadow-sm cursor-pointer"
-                              style={{ height: "160px", transformStyle: "preserve-3d", transition: "transform 0.6s cubic-bezier(0.4, 0, 0.2, 1)" }}
-                              onMouseEnter={e => e.currentTarget.style.transform = "rotateY(180deg)"}
-                              onMouseLeave={e => e.currentTarget.style.transform = "rotateY(0deg)"}
+                              className="flip-card relative rounded-xl border border-white/5 bg-surface-light shadow-sm cursor-pointer"
                             >
                               {/* Front Face */}
                               <div className="absolute inset-0 flex flex-col justify-between p-4" style={{ backfaceVisibility: "hidden", WebkitBackfaceVisibility: "hidden" }}>
-                                <span className="absolute top-3 right-3 text-[10px] font-black text-slate-300">{formattedNumber}</span>
+                                <span className="absolute top-3 right-3 text-[10px] font-black text-white/10">{formattedNumber}</span>
                                 <div>
-                                  <div className={`mb-3 flex h-10 w-10 items-center justify-center rounded-lg border ${colorClass}`}>
+                                  <div className="mb-3 flex h-10 w-10 items-center justify-center rounded-lg border border-primary-500/20 bg-primary-500/10 text-primary-400">
                                     <Icon size={18} strokeWidth={2} />
                                   </div>
-                                  <h4 className="text-sm font-extrabold text-slate-900 leading-tight">{cat.name}</h4>
+                                  <h4 className="text-sm font-extrabold text-white leading-tight">{cat.name}</h4>
                                 </div>
-                                <div className="flex items-center justify-between border-t border-slate-50 pt-3">
-                                  <span className="text-[10px] font-bold text-slate-400">{cat.questionCount || 0} solutions</span>
-                                  <div className="flex h-6 w-6 items-center justify-center rounded-full bg-slate-100 text-slate-700 shadow-sm">
+                                <div className="flex items-center justify-between border-t border-white/5 pt-3">
+                                  <span className="text-[10px] font-bold text-gray-400">{cat.questionCount || 0} solutions</span>
+                                  <div className="flex h-6 w-6 items-center justify-center rounded-full bg-surface-lighter text-gray-300 shadow-sm">
                                     <ArrowRight size={12} />
                                   </div>
                                 </div>
                               </div>
                               {/* Back Face */}
-                              <div className="absolute inset-0 flex flex-col items-start justify-center p-4 rounded-xl bg-gradient-to-br from-slate-800 to-slate-900" style={{ backfaceVisibility: "hidden", WebkitBackfaceVisibility: "hidden", transform: "rotateY(180deg)" }}>
-                                <p className="text-xs font-medium text-slate-300 leading-relaxed line-clamp-5">{cat.description || categoryDescriptions[cat.name] || `Official FAQs for the section: ${cat.name}`}</p>
+                              <div className="absolute inset-0 flex flex-col items-start justify-center p-4 rounded-xl bg-gradient-to-br from-surface-light to-surface" style={{ backfaceVisibility: "hidden", WebkitBackfaceVisibility: "hidden", transform: "rotateY(180deg)" }}>
+                                <p className="text-xs font-medium text-gray-300 leading-relaxed line-clamp-5">{cat.description || categoryDescriptions[cat.name] || `Official FAQs for the section: ${cat.name}`}</p>
                                 <div className="mt-4 flex items-center gap-1 text-[10px] font-semibold text-primary-400">
                                   <span>View FAQs</span>
                                   <ArrowRight size={12} />
