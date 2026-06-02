@@ -75,7 +75,8 @@ export const getQuestions = async (req, res, next) => {
         status: { $ne: 'deleted' } 
       })
         .populate('author', 'username name avatar role badgeLevel')
-        .populate('category', 'name');
+        .populate('category', 'name')
+        .populate('linkedBestAnswerId');
 
       // Sort questions based on the aggregated topAnswers order
       questions.sort((a, b) => {
@@ -92,6 +93,7 @@ export const getQuestions = async (req, res, next) => {
     const questions = await Question.find(query)
       .populate('author', 'username name avatar role badgeLevel')
       .populate('category', 'name')
+      .populate('linkedBestAnswerId')
       .sort(sortConfig)
       .limit(limitNum + 1);
 

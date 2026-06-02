@@ -6,7 +6,7 @@ import {
   AlertTriangle, Save, Loader2, Send, ArrowLeft, GraduationCap,
   Flame, Sun, Bookmark, Edit3, Bell, User as UserIcon, Trash,
   UserPlus, DollarSign, BookOpen, Briefcase, Building, Cpu, Heart,
-  Library, Compass, Globe, Search, Zap, ShieldCheck, HelpCircle, ArrowRight, ThumbsUp, Activity,
+  Library, Compass, Globe, Search, Zap, ShieldCheck, HelpCircle, ArrowRight, ThumbsUp, ThumbsDown, ShieldAlert, Activity,
   Laptop, Bot, Users, Notebook
 } from "lucide-react";
 import api from "../api/axios";
@@ -133,6 +133,14 @@ const MyProfile = ({ currentUser, onBack, onQuestionClick, onAskClick, initialTa
   const [savingSettings, setSavingSettings] = useState(false);
   const [toast, setToast] = useState(null);
 
+  // Report Modal states
+  const [isReportModalOpen, setIsReportModalOpen] = useState(false);
+  const [reportTarget, setReportTarget] = useState(null); // { id, type }
+  const [reportReason, setReportReason] = useState("spam");
+  const [reportDesc, setReportDesc] = useState("");
+  const [submittingReport, setSubmittingReport] = useState(false);
+  const [reportedIds, setReportedIds] = useState(new Set()); // IDs already reported by the user
+
   useEffect(() => {
     if (toast) {
       const timer = setTimeout(() => {
@@ -159,10 +167,22 @@ const MyProfile = ({ currentUser, onBack, onQuestionClick, onAskClick, initialTa
   const isAdmin = currentUser?.role === "admin" || currentUser?.role === "superadmin";
   const isSuperadmin = currentUser?.role === "superadmin";
 
+  const fetchMyReports = async () => {
+    try {
+      const response = await api.get("/reports/my");
+      if (response.data.success) {
+        setReportedIds(new Set(response.data.data.map(r => r.targetId)));
+      }
+    } catch (error) {
+      console.error("Error fetching user reports:", error);
+    }
+  };
+
   useEffect(() => {
     if (currentUser?._id) {
       fetchUserProfile();
       fetchNotifications();
+      fetchMyReports();
     }
   }, [currentUser]);
 
@@ -423,29 +443,92 @@ const MyProfile = ({ currentUser, onBack, onQuestionClick, onAskClick, initialTa
     try {
       const response = await api.patch(`/questions/${qId}/helpful`);
       if (response.data.success) {
-        // Update local state to reflect the new vote count
-        setNewQuestions(prev => prev.map(q => {
-          if (q._id === qId) {
-            const hasVoted = response.data.data.hasVoted;
-            let newVotes = q.helpfulVotes ? [...q.helpfulVotes] : [];
-            if (hasVoted && !newVotes.includes(currentUser?._id)) {
-              newVotes.push(currentUser?._id);
-            } else if (!hasVoted) {
-              newVotes = newVotes.filter(id => id !== currentUser?._id);
+        const updateQuestionList = (list) => 
+          list.map(q => {
+            if (q._id === qId) {
+              const hasVoted = response.data.data.hasVoted;
+              let newVotes = q.helpfulVotes ? [...q.helpfulVotes] : [];
+              if (hasVoted && !newVotes.includes(currentUser?._id)) {
+                newVotes.push(currentUser?._id);
+              } else if (!hasVoted) {
+                newVotes = newVotes.filter(id => id !== currentUser?._id);
+              }
+              return {
+                ...q,
+                helpfulVotes: newVotes,
+                helpfulVotesCount: response.data.data.helpfulVotesCount
+              };
             }
-            return {
-              ...q,
-              helpfulVotes: newVotes,
-              helpfulVotesCount: response.data.data.helpfulVotesCount
-            };
-          }
-          return q;
-        }).sort((a, b) => (b.helpfulVotesCount || 0) - (a.helpfulVotesCount || 0)));
+            return q;
+          });
+
+        setNewQuestions(prev => updateQuestionList(prev).sort((a, b) => (b.helpfulVotesCount || 0) - (a.helpfulVotesCount || 0)));
+        setPopularQuestions(prev => updateQuestionList(prev));
       }
     } catch (err) {
       console.error("Failed to toggle helpful vote:", err);
     }
   };
+
+  const handleAnswerDownvote = async (e, questionId, answerId) => {
+    e.stopPropagation();
+    if (!currentUser) {
+      return;
+    }
+    try {
+      const response = await api.post(`/questions/${questionId}/answers/${answerId}/downvote`);
+      if (response.data.success) {
+        setPopularQuestions(prev => prev.map(q => {
+          if (q.linkedBestAnswerId?._id === answerId) {
+            return {
+              ...q,
+              linkedBestAnswerId: {
+                ...q.linkedBestAnswerId,
+                upvotes: response.data.data.upvotes || q.linkedBestAnswerId.upvotes,
+                downvotes: response.data.data.downvotes || q.linkedBestAnswerId.downvotes,
+                upvoteCount: response.data.data.upvoteCount ?? q.linkedBestAnswerId.upvoteCount,
+                reputationScore: response.data.data.reputationScore ?? q.linkedBestAnswerId.reputationScore
+              }
+            };
+          }
+          return q;
+        }));
+        setToast({ message: "Downvote updated successfully", type: "success" });
+      }
+    } catch (err) {
+      console.error("Failed to toggle downvote on answer:", err);
+      setToast({ message: err.response?.data?.error?.message || "Failed to update downvote.", type: "error" });
+    }
+  };
+
+  const handleReportSubmit = async (e) => {
+    e.preventDefault();
+    if (!currentUser) {
+      return;
+    }
+    setSubmittingReport(true);
+    try {
+      const response = await api.post("/reports", {
+        targetType: reportTarget.type,
+        targetId: reportTarget.id,
+        type: reportReason,
+        description: reportDesc
+      });
+      if (response.data.success) {
+        setToast({ message: `Thank you! The ${reportTarget.type} has been reported.`, type: "success" });
+        setReportedIds(prev => new Set(prev).add(reportTarget.id));
+        setIsReportModalOpen(false);
+        setReportDesc("");
+        setReportReason("spam");
+      }
+    } catch (error) {
+      console.error("Error reporting content:", error);
+      setToast({ message: error.response?.data?.error?.message || "Failed to submit report.", type: "error" });
+    } finally {
+      setSubmittingReport(false);
+    }
+  };
+
 
   const handleModerationAction = async (targetId, action, questionId = null) => {
     setActionMessage("");
@@ -1210,7 +1293,8 @@ const MyProfile = ({ currentUser, onBack, onQuestionClick, onAskClick, initialTa
                   </>
                 )}
               </div>
-            )}           {/* POPULAR SUB-VIEW */}
+            )}
+            {/* POPULAR SUB-VIEW */}
             {activeTab === "popular" && (
               <div className="space-y-6">
                 <div>
@@ -1218,34 +1302,125 @@ const MyProfile = ({ currentUser, onBack, onQuestionClick, onAskClick, initialTa
                   <p className="text-xs text-gray-500">Browse highly viewed questions and deflection logs across the campus community.</p>
                 </div>
 
-                <div className="rounded-2xl border border-white/10 bg-surface-light p-6 shadow-xl">
-                  {popularQuestions.length === 0 ? (
+                {popularQuestions.length === 0 ? (
+                  <div className="rounded-2xl border border-white/10 bg-surface-light p-6 shadow-xl">
                     <div className="rounded-xl border border-dashed border-white/10 bg-surface/30 p-12 text-center text-gray-500 font-sans">
                       No popular questions loaded.
                     </div>
-                  ) : (
-                    <div className="space-y-3">
-                      {popularQuestions.map((q) => (
+                  </div>
+                ) : (
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    {popularQuestions.map((q) => {
+                      const hasUpvoted = q.helpfulVotes?.includes(currentUser?._id);
+                      const hasDownvoted = q.linkedBestAnswerId?.downvotes?.includes(currentUser?._id);
+                      const isReported = reportedIds.has(q._id);
+
+                      return (
                         <div 
                           key={q._id}
                           onClick={() => onQuestionClick(q)}
-                          className="rounded-xl border border-white/5 bg-surface p-4 hover:border-white/10 hover:bg-surface-lighter cursor-pointer transition-all duration-200 flex items-center justify-between gap-4"
+                          className="group relative flex flex-col justify-between rounded-2xl border border-white/5 bg-surface-light p-5 cursor-pointer hover:border-white/10 hover:bg-surface-lighter hover:shadow-xl transition-all duration-300 gap-4"
                         >
-                          <div className="min-w-0 flex-1">
-                            <h4 className="text-sm font-bold text-white hover:text-primary-300 truncate mb-1">{q.title}</h4>
-                            <p className="text-[10px] text-gray-500 font-sans">Category: {q.category?.name} • Views: {q.views || 0} • {new Date(q.createdAt).toLocaleDateString()}</p>
+                          <div className="space-y-3">
+                            {/* Card Header Info */}
+                            <div className="flex justify-between items-center text-[10px] text-gray-500">
+                              <span className="inline-flex items-center gap-1 rounded bg-amber-500/10 text-amber-400 border border-amber-500/20 px-2 py-0.5 font-bold uppercase">
+                                🔥 Popular
+                              </span>
+                              <span>Category: {q.category?.name} • Views: {q.views || 0}</span>
+                            </div>
+
+                            {/* Question Title */}
+                            <div>
+                              <h4 className="text-base font-bold text-white group-hover:text-primary-300 leading-snug line-clamp-2">
+                                {q.title}
+                              </h4>
+                              <p className="text-[10px] text-gray-500 mt-1">Asked on {new Date(q.createdAt).toLocaleDateString()}</p>
+                            </div>
+
+                            {/* Best Answer Block */}
+                            {q.linkedBestAnswerId ? (
+                              <div className="p-3.5 rounded-xl bg-emerald-500/5 border border-emerald-500/10 text-xs text-gray-300">
+                                <div className="flex items-center gap-1.5 text-[10px] font-black text-emerald-400 uppercase tracking-wider mb-1.5">
+                                  <Award size={12} className="shrink-0" />
+                                  Best Answer
+                                </div>
+                                <p className="line-clamp-3 leading-relaxed whitespace-pre-wrap font-sans">
+                                  {q.linkedBestAnswerId.body}
+                                </p>
+                              </div>
+                            ) : (
+                              <div className="p-3.5 rounded-xl bg-white/5 border border-white/5 text-xs text-gray-500 italic font-sans">
+                                Waiting for a verified solution...
+                              </div>
+                            )}
                           </div>
-                          <div className="flex items-center gap-3 shrink-0">
-                            <span className="inline-flex items-center gap-1 rounded bg-amber-500/10 text-amber-400 border border-amber-500/20 px-2 py-0.5 text-[9px] font-bold">
-                              🔥 Popular
-                            </span>
-                            <ChevronRight size={16} className="text-gray-500" />
+
+                          {/* Card Footer Actions */}
+                          <div className="flex items-center justify-between border-t border-white/5 pt-3 mt-1 flex-wrap gap-2">
+                            <div className="flex items-center gap-2">
+                              {/* Upvote Button */}
+                              <button
+                                onClick={(e) => handleHelpfulVote(e, q._id)}
+                                className={`flex items-center gap-1 px-2.5 py-1.5 rounded-lg border text-[10px] font-bold transition-all duration-200 ${
+                                  hasUpvoted
+                                    ? "bg-primary-500/20 text-primary-400 border-primary-500/30"
+                                    : "bg-surface border-white/5 text-gray-400 hover:text-white hover:border-white/10"
+                                }`}
+                                title={hasUpvoted ? "Remove upvote" : "Upvote question"}
+                              >
+                                <ThumbsUp size={12} className={hasUpvoted ? "fill-current" : ""} />
+                                <span>{q.helpfulVotesCount || 0}</span>
+                              </button>
+
+                              {/* Downvote Button */}
+                              <button
+                                onClick={(e) => {
+                                  if (q.linkedBestAnswerId) {
+                                    handleAnswerDownvote(e, q._id, q.linkedBestAnswerId._id);
+                                  } else {
+                                    e.stopPropagation();
+                                  }
+                                }}
+                                disabled={!q.linkedBestAnswerId}
+                                className={`flex items-center gap-1 px-2.5 py-1.5 rounded-lg border text-[10px] font-bold transition-all duration-200 ${
+                                  !q.linkedBestAnswerId
+                                    ? "opacity-30 cursor-not-allowed bg-surface border-white/5 text-gray-600"
+                                    : hasDownvoted
+                                    ? "bg-red-500/20 text-red-400 border-red-500/30"
+                                    : "bg-surface border-white/5 text-gray-400 hover:text-white hover:border-white/10"
+                                }`}
+                                title={!q.linkedBestAnswerId ? "No answer to downvote" : hasDownvoted ? "Remove downvote" : "Downvote best answer"}
+                              >
+                                <ThumbsDown size={12} className={hasDownvoted ? "fill-current" : ""} />
+                                <span>{q.linkedBestAnswerId?.downvotes?.length || 0}</span>
+                              </button>
+                            </div>
+
+                            {/* Report Button */}
+                            <button
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                setReportTarget({ id: q._id, type: "question" });
+                                setIsReportModalOpen(true);
+                              }}
+                              disabled={isReported}
+                              className={`flex items-center gap-1.5 rounded-lg py-1.5 px-3 text-[10px] font-bold transition-all duration-200 border ${
+                                isReported
+                                  ? "bg-gray-500/10 border-gray-500/20 text-gray-500 cursor-not-allowed opacity-50"
+                                  : "bg-red-500/10 border-red-500/20 text-red-400 hover:bg-red-500/20"
+                              }`}
+                              title={isReported ? "Already reported" : "Report question"}
+                            >
+                              <ShieldAlert size={12} />
+                              {isReported ? "Reported" : "Report"}
+                            </button>
                           </div>
                         </div>
-                      ))}
-                    </div>
-                  )}
-                </div>
+                      );
+                    })}
+                  </div>
+                )}
               </div>
             )}
 
@@ -2556,6 +2731,77 @@ const MyProfile = ({ currentUser, onBack, onQuestionClick, onAskClick, initialTa
           </>
         )}
       </main>
+
+      {/* Report Modal */}
+      {isReportModalOpen && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm p-4">
+          <div className="w-full max-w-md rounded-2xl border border-white/10 bg-surface-light p-6 shadow-2xl animate-in fade-in zoom-in-95 duration-200">
+            <div className="flex items-center justify-between border-b border-white/5 pb-4 mb-4">
+              <div className="flex items-center gap-2 text-red-400">
+                <ShieldAlert size={18} />
+                <h3 className="text-base font-bold text-white">Report Question</h3>
+              </div>
+              <button 
+                onClick={() => setIsReportModalOpen(false)}
+                className="text-gray-400 hover:text-white"
+              >
+                <X size={16} />
+              </button>
+            </div>
+
+            {/* Form */}
+            <form onSubmit={handleReportSubmit} className="space-y-4">
+              <div>
+                <label className="block text-xs font-semibold text-gray-400 uppercase mb-1.5">
+                  Reason for Reporting
+                </label>
+                <select
+                  value={reportReason}
+                  onChange={(e) => setReportReason(e.target.value)}
+                  required
+                  className="w-full rounded-lg border border-white/10 bg-surface py-2.5 px-3 text-sm text-white focus:border-primary-400/50 focus:outline-none"
+                >
+                  <option value="spam" className="text-white bg-surface-light">Spam</option>
+                  <option value="abuse" className="text-white bg-surface-light">Abuse / Harassment</option>
+                  <option value="misinformation" className="text-white bg-surface-light">Misinformation</option>
+                  <option value="irrelevant" className="text-white bg-surface-light">Irrelevant Content</option>
+                  <option value="outdated" className="text-white bg-surface-light">Outdated Content</option>
+                </select>
+              </div>
+
+              <div>
+                <label className="block text-xs font-semibold text-gray-400 uppercase mb-1.5">
+                  Optional Details
+                </label>
+                <textarea
+                  value={reportDesc}
+                  onChange={(e) => setReportDesc(e.target.value)}
+                  rows={4}
+                  placeholder="Provide additional details or context about why you are reporting this question..."
+                  className="w-full rounded-lg border border-white/10 bg-surface py-2.5 px-4 text-sm text-white placeholder-gray-600 focus:border-primary-400/50 focus:outline-none resize-none"
+                />
+              </div>
+
+              <div className="flex gap-3 pt-2">
+                <button
+                  type="button"
+                  onClick={() => setIsReportModalOpen(false)}
+                  className="flex-1 rounded-lg border border-white/10 bg-surface hover:bg-surface-lighter py-2 px-4 text-xs font-semibold text-white transition-all duration-200"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="submit"
+                  disabled={submittingReport}
+                  className="flex-[2] rounded-lg bg-red-500 hover:bg-red-600 py-2 px-4 text-xs font-semibold text-white transition-all duration-300 disabled:opacity-50 flex items-center justify-center gap-1.5"
+                >
+                  {submittingReport ? "Submitting..." : "Submit Report"}
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
 
       {/* Toast Notification */}
       {toast && (
