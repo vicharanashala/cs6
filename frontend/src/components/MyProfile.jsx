@@ -6,7 +6,8 @@ import {
   AlertTriangle, Save, Loader2, Send, ArrowLeft, GraduationCap,
   Flame, Sun, Bookmark, Edit3, Bell, User as UserIcon, Trash,
   UserPlus, DollarSign, BookOpen, Briefcase, Building, Cpu, Heart,
-  Library, Compass, Globe, Search, Zap, ShieldCheck, HelpCircle, ArrowRight, ThumbsUp, Activity
+  Library, Compass, Globe, Search, Zap, ShieldCheck, HelpCircle, ArrowRight, ThumbsUp, Activity,
+  Laptop, Bot, Users, Notebook
 } from "lucide-react";
 import api from "../api/axios";
 import UserManagement from "./UserManagement";
@@ -202,19 +203,19 @@ const MyProfile = ({ currentUser, onBack, onQuestionClick, onAskClick, initialTa
   // ── Category icon/color meta ────────────────────────────────
   const getCategoryMeta = (index) => {
     const meta = [
-      { icon: UserPlus, colorClass: "bg-violet-50 text-violet-700 border-violet-200" },
-      { icon: DollarSign, colorClass: "bg-emerald-50 text-emerald-700 border-emerald-200" },
-      { icon: BookOpen, colorClass: "bg-blue-50 text-blue-700 border-blue-200" },
-      { icon: HomeIcon, colorClass: "bg-orange-50 text-orange-700 border-orange-200" },
-      { icon: Briefcase, colorClass: "bg-indigo-50 text-indigo-700 border-indigo-200" },
-      { icon: FileText, colorClass: "bg-red-50 text-red-700 border-red-200" },
-      { icon: Building, colorClass: "bg-teal-50 text-teal-700 border-teal-200" },
-      { icon: Award, colorClass: "bg-amber-50 text-amber-800 border-amber-200" },
-      { icon: Cpu, colorClass: "bg-cyan-50 text-cyan-700 border-cyan-200" },
-      { icon: Heart, colorClass: "bg-rose-50 text-rose-700 border-rose-200" },
-      { icon: Library, colorClass: "bg-sky-50 text-sky-700 border-sky-200" },
-      { icon: Compass, colorClass: "bg-fuchsia-50 text-fuchsia-700 border-fuchsia-200" },
-      { icon: Globe, colorClass: "bg-yellow-50 text-yellow-700 border-yellow-200" }
+      { icon: UserPlus, colorClass: "text-primary-400 bg-primary-500/10 border-primary-500/20" }, // About the internship
+      { icon: Clock, colorClass: "text-primary-400 bg-primary-500/10 border-primary-500/20" },    // Timing and dates
+      { icon: BookOpen, colorClass: "text-primary-400 bg-primary-500/10 border-primary-500/20" }, // NOC (No Objection Certificate)
+      { icon: FileText, colorClass: "text-primary-400 bg-primary-500/10 border-primary-500/20" }, // Selection, offer letter, and certificate
+      { icon: Briefcase, colorClass: "text-primary-400 bg-primary-500/10 border-primary-500/20" }, // Work, mentorship, and projects
+      { icon: Globe, colorClass: "text-primary-400 bg-primary-500/10 border-primary-500/20" },    // Code of conduct — communication channels
+      { icon: Building, colorClass: "text-primary-400 bg-primary-500/10 border-primary-500/20" }, // Interviews Related
+      { icon: Award, colorClass: "text-primary-400 bg-primary-500/10 border-primary-500/20" },    // Certificate
+      { icon: Notebook, colorClass: "text-primary-400 bg-primary-500/10 border-primary-500/20" }, // Rosetta — your internship journal
+      { icon: Laptop, colorClass: "text-primary-400 bg-primary-500/10 border-primary-500/20" },   // Phase 1 — coursework, Vibe LMS, and live sessions
+      { icon: Bot, colorClass: "text-primary-400 bg-primary-500/10 border-primary-500/20" },      // Yaksha Chat Related
+      { icon: Compass, colorClass: "text-primary-400 bg-primary-500/10 border-primary-500/20" },  // ViBe Platform
+      { icon: Users, colorClass: "text-primary-400 bg-primary-500/10 border-primary-500/20" }     // Team Formation
     ];
     return meta[index % meta.length];
   };
@@ -1175,20 +1176,20 @@ const MyProfile = ({ currentUser, onBack, onQuestionClick, onAskClick, initialTa
                             <div
                               key={cat._id}
                               onClick={() => onCategorySelect(cat)}
-                              className="flip-card relative rounded-xl border border-white/5 bg-[#034d33] shadow-sm cursor-pointer"
+                              className="flip-card relative rounded-xl border border-white/5 bg-surface-light hover:border-primary-500/15 shadow-sm cursor-pointer"
                             >
                               {/* Front Face */}
                               <div className="absolute inset-0 flex flex-col justify-between p-4" style={{ backfaceVisibility: "hidden", WebkitBackfaceVisibility: "hidden" }}>
                                 <span className="absolute top-3 right-3 text-[10px] font-black text-white/10">{formattedNumber}</span>
                                 <div>
-                                  <div className="mb-3 flex h-10 w-10 items-center justify-center rounded-lg border border-white/10 bg-white/5 text-gray-300">
+                                  <div className={`mb-3 flex h-10 w-10 items-center justify-center rounded-lg border ${colorClass}`}>
                                     <Icon size={18} strokeWidth={2} />
                                   </div>
                                   <h4 className="text-sm font-extrabold text-gray-300 leading-tight">{cat.name}</h4>
                                 </div>
                                 <div className="flex items-center justify-between border-t border-white/5 pt-3">
                                   <span className="text-[10px] font-bold text-gray-400">{cat.questionCount || 0} solutions</span>
-                                  <div className="flex h-6 w-6 items-center justify-center rounded-full bg-white/5 text-gray-400 shadow-sm">
+                                  <div className="flex h-6 w-6 items-center justify-center rounded-full bg-surface-light/5 text-gray-400 shadow-sm">
                                     <ArrowRight size={12} />
                                   </div>
                                 </div>

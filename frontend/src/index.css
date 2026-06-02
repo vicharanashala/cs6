@@ -1,8 +1,37 @@
 @import "tailwindcss";
 
-/* ─── Custom Design Tokens ─────────────────────────────── */
-@theme {
+/* ─── Custom CSS Theme Variables ───────────────────────── */
+:root {
   --font-sans: "Inter", ui-sans-serif, system-ui, -apple-system, sans-serif;
+
+  /* Default Dark Mode Values */
+  --bg-surface: #0a0a0f;
+  --bg-surface-dark: #050508;
+  --bg-surface-light: #111118;
+  --bg-surface-lighter: #1a1a24;
+
+  --txt-gray-50: #ffffff;
+  --txt-gray-100: #f9f9f9;
+  --txt-gray-200: #f0f0f0;
+  --txt-gray-300: #e2e2e2;
+  --txt-gray-400: #c5c5c5;
+  --txt-gray-500: #a3a3a3;
+  --txt-gray-600: #808080;
+  --txt-gray-700: #3a3a3a;
+  --txt-gray-800: #262626;
+  --txt-gray-900: #1e1e1e;
+
+  /* Glass Background */
+  --glass-bg: rgba(17, 17, 24, 0.7);
+
+  /* Gradients */
+  --gradient-hero-start: #ffffff;
+  --gradient-hero-end: #00d4ba;
+
+  /* Outline Button */
+  --btn-outline-text: #00f0d4;
+  --btn-outline-bg: rgba(0, 240, 212, 0.05);
+  --btn-outline-border: rgba(0, 240, 212, 0.3);
 
   /* Cyan / Teal accent palette */
   --color-primary-50: #ecfdf5;
@@ -15,56 +44,117 @@
   --color-primary-700: #009e8c;
   --color-primary-800: #007a6d;
   --color-primary-900: #005c52;
+}
+
+[data-theme="light"] {
+  /* Swapped Light Mode Values */
+  --bg-surface: #f9f9f9;
+  --bg-surface-dark: #e2e2e2;
+  --bg-surface-light: #ffffff;
+  --bg-surface-lighter: #f0f0f0;
+
+  --txt-gray-50: #050508;
+  --txt-gray-100: #0a0a0f;
+  --txt-gray-200: #111118;
+  --txt-gray-300: #1a1a24;
+  --txt-gray-400: #262626;
+  --txt-gray-500: #3a3a3a;
+  --txt-gray-600: #808080;
+  --txt-gray-700: #a3a3a3;
+  --txt-gray-800: #c5c5c5;
+  --txt-gray-900: #e2e2e2;
+
+  /* Glass Background */
+  --glass-bg: rgba(255, 255, 255, 0.7);
+
+  /* Gradients */
+  --gradient-hero-start: #007a6d;
+  --gradient-hero-end: #005c52;
+
+  /* Outline Button */
+  --btn-outline-text: #007a6d;
+  --btn-outline-bg: rgba(0, 122, 109, 0.05);
+  --btn-outline-border: rgba(0, 122, 109, 0.3);
+
+  /* Darker teal accent palette for readability in light mode */
+  --color-primary-50: #f0fdf4;
+  --color-primary-100: #dcfce7;
+  --color-primary-200: #bbf7d0;
+  --color-primary-300: #86efac;
+  --color-primary-400: #00b8a2;
+  --color-primary-500: #009e8c;
+  --color-primary-600: #007a6d;
+  --color-primary-700: #005c52;
+  --color-primary-800: #032b26;
+  --color-primary-900: #021e1a;
+}
+
+/* ─── Custom Design Tokens for Tailwind 4 ──────────────── */
+@theme {
+  --font-sans: var(--font-sans);
+
+  /* Primary */
+  --color-primary-50: var(--color-primary-50);
+  --color-primary-100: var(--color-primary-100);
+  --color-primary-200: var(--color-primary-200);
+  --color-primary-300: var(--color-primary-300);
+  --color-primary-400: var(--color-primary-400);
+  --color-primary-500: var(--color-primary-500);
+  --color-primary-600: var(--color-primary-600);
+  --color-primary-700: var(--color-primary-700);
+  --color-primary-800: var(--color-primary-800);
+  --color-primary-900: var(--color-primary-900);
 
   /* Deep dark surfaces */
-  --color-surface: #0a0a0f;
-  --color-surface-dark: #050508;
-  --color-surface-light: #111118;
-  --color-surface-lighter: #1a1a24;
+  --color-surface: var(--bg-surface);
+  --color-surface-dark: var(--bg-surface-dark);
+  --color-surface-light: var(--bg-surface-light);
+  --color-surface-lighter: var(--bg-surface-lighter);
 
   /* Map blue directly to Cyan */
-  --color-blue-50: #ecfdf5;
-  --color-blue-100: #d1fae5;
-  --color-blue-200: #a7f3d0;
-  --color-blue-300: #6ee7b7;
-  --color-blue-400: #00f0d4;
-  --color-blue-500: #00d4ba;
-  --color-blue-600: #00b8a2;
-  --color-blue-700: #009e8c;
-  --color-blue-800: #007a6d;
-  --color-blue-900: #005c52;
+  --color-blue-50: var(--color-primary-50);
+  --color-blue-100: var(--color-primary-100);
+  --color-blue-200: var(--color-primary-200);
+  --color-blue-300: var(--color-primary-300);
+  --color-blue-400: var(--color-primary-400);
+  --color-blue-500: var(--color-primary-500);
+  --color-blue-600: var(--color-primary-600);
+  --color-blue-700: var(--color-primary-700);
+  --color-blue-800: var(--color-primary-800);
+  --color-blue-900: var(--color-primary-900);
   --color-blue-950: #032b26;
 
   /* Map indigo directly to Cyan */
-  --color-indigo-50: #ecfdf5;
-  --color-indigo-100: #d1fae5;
-  --color-indigo-200: #a7f3d0;
-  --color-indigo-300: #6ee7b7;
-  --color-indigo-400: #00f0d4;
-  --color-indigo-500: #00d4ba;
-  --color-indigo-600: #00b8a2;
-  --color-indigo-700: #009e8c;
-  --color-indigo-800: #007a6d;
-  --color-indigo-900: #005c52;
+  --color-indigo-50: var(--color-primary-50);
+  --color-indigo-100: var(--color-primary-100);
+  --color-indigo-200: var(--color-primary-200);
+  --color-indigo-300: var(--color-primary-300);
+  --color-indigo-400: var(--color-primary-400);
+  --color-indigo-500: var(--color-primary-500);
+  --color-indigo-600: var(--color-primary-600);
+  --color-indigo-700: var(--color-primary-700);
+  --color-indigo-800: var(--color-primary-800);
+  --color-indigo-900: var(--color-primary-900);
   --color-indigo-950: #032b26;
   
   /* Gray shades */
-  --color-gray-50: #ffffff;
-  --color-gray-100: #f9f9f9;
-  --color-gray-200: #f0f0f0;
-  --color-gray-300: #e2e2e2;
-  --color-gray-400: #c5c5c5;
-  --color-gray-500: #a3a3a3;
-  --color-gray-600: #808080;
-  --color-gray-700: #3a3a3a;
-  --color-gray-800: #262626;
-  --color-gray-900: #1e1e1e;
+  --color-gray-50: var(--txt-gray-50);
+  --color-gray-100: var(--txt-gray-100);
+  --color-gray-200: var(--txt-gray-200);
+  --color-gray-300: var(--txt-gray-300);
+  --color-gray-400: var(--txt-gray-400);
+  --color-gray-500: var(--txt-gray-500);
+  --color-gray-600: var(--txt-gray-600);
+  --color-gray-700: var(--txt-gray-700);
+  --color-gray-800: var(--txt-gray-800);
+  --color-gray-900: var(--txt-gray-900);
 }
 
 /* ─── Base Styles ──────────────────────────────────────── */
 body {
   @apply bg-surface text-gray-100 font-sans antialiased;
   min-height: 100vh;
+  transition: background-color 0.3s ease, color 0.3s ease;
 }
 
 #root {
@@ -103,14 +193,14 @@ body {
 
 /* ─── Gradient Text ────────────────────────────────────── */
 .text-gradient-cyan {
-  background: linear-gradient(135deg, #ffffff 0%, #00f0d4 50%, #00d4ba 100%);
+  background: linear-gradient(135deg, var(--gradient-hero-start) 0%, var(--color-primary-400) 50%, var(--color-primary-500) 100%);
   -webkit-background-clip: text;
   -webkit-text-fill-color: transparent;
   background-clip: text;
 }
 
 .text-gradient-hero {
-  background: linear-gradient(180deg, #ffffff 30%, rgba(0, 240, 212, 0.7) 100%);
+  background: linear-gradient(180deg, var(--gradient-hero-start) 30%, var(--gradient-hero-end) 100%);
   -webkit-background-clip: text;
   -webkit-text-fill-color: transparent;
   background-clip: text;
@@ -157,8 +247,8 @@ body {
   display: none;
 }
 .scrollbar-none {
-  -ms-overflow-style: none;  /* IE and Edge */
-  scrollbar-width: none;  /* Firefox */
+  -ms-overflow-style: none;
+  scrollbar-width: none;
 }
 
 /* ─── Utilities ────────────────────────────────────────── */
@@ -171,7 +261,7 @@ body {
 
 /* ─── Glass Effect ─────────────────────────────────────── */
 .glass {
-  background: rgba(17, 17, 24, 0.7);
+  background: var(--glass-bg);
   backdrop-filter: blur(20px);
   -webkit-backdrop-filter: blur(20px);
 }
@@ -189,14 +279,14 @@ body {
 }
 
 .btn-outline-cyan {
-  border: 1px solid rgba(0, 240, 212, 0.3);
-  color: #00f0d4;
-  background: rgba(0, 240, 212, 0.05);
+  border: 1px solid var(--btn-outline-border);
+  color: var(--btn-outline-text);
+  background: var(--btn-outline-bg);
   transition: all 0.3s ease;
 }
 .btn-outline-cyan:hover {
   background: rgba(0, 240, 212, 0.1);
-  border-color: rgba(0, 240, 212, 0.5);
+  border-color: var(--btn-outline-text);
   box-shadow: 0 0 15px rgba(0, 240, 212, 0.1);
 }
 
@@ -206,9 +296,109 @@ body {
   perspective: 1000px;
   transform-style: preserve-3d;
   transition: transform 0.6s cubic-bezier(0.4, 0, 0.2, 1);
-  transition-delay: 0.25s; /* Delay flip to avoid jittery animations when fast hovering */
+  transition-delay: 0.25s;
 }
 
 .flip-card:hover {
   transform: rotateY(180deg);
+}
+
+/* ─── Light Mode CSS Class Overrides ─────────────────────── */
+[data-theme="light"] {
+  .border-white\/5 {
+    border-color: rgba(0, 0, 0, 0.08) !important;
+  }
+  .border-white\/10 {
+    border-color: rgba(0, 0, 0, 0.15) !important;
+  }
+  .border-t-white\/5 {
+    border-top-color: rgba(0, 0, 0, 0.08) !important;
+  }
+  .border-b-white\/5 {
+    border-bottom-color: rgba(0, 0, 0, 0.08) !important;
+  }
+  .border-l-white\/10 {
+    border-left-color: rgba(0, 0, 0, 0.15) !important;
+  }
+  .border-r-white\/10 {
+    border-right-color: rgba(0, 0, 0, 0.15) !important;
+  }
+
+  .bg-surface-light\/80 {
+    background-color: rgba(255, 255, 255, 0.8) !important;
+  }
+  .bg-surface-light\/40 {
+    background-color: rgba(255, 255, 255, 0.4) !important;
+  }
+  .bg-surface-light\/5 {
+    background-color: rgba(0, 0, 0, 0.03) !important;
+  }
+  .bg-surface\/80 {
+    background-color: rgba(255, 255, 255, 0.8) !important;
+  }
+  .bg-surface\/50 {
+    background-color: rgba(0, 0, 0, 0.03) !important;
+  }
+
+  /* Force kept-white class elements to stay white */
+  .keep-white,
+  .keep-white * {
+    color: #ffffff !important;
+  }
+
+  /* Automatically map text-white to dark text except for kept-white elements and dark-colored buttons/surfaces */
+  .text-white:not(.keep-white):not(.btn-cyan):not([class*="bg-primary-"]):not([class*="bg-indigo-"]):not([class*="bg-blue-"]):not([class*="bg-red-"]):not([class*="bg-emerald-"]):not([class*="bg-green-"]):not([class*="bg-amber-"]):not([class*="from-primary-"]):not([class*="from-indigo-"]):not(.text-gradient-hero):not(.text-gradient-cyan) {
+    color: var(--txt-gray-100) !important;
+  }
+
+  /* Override hover state white text transitions to dark text */
+  .hover\:text-white:hover:not(.keep-white) {
+    color: var(--txt-gray-100) !important;
+  }
+  .group:hover .group-hover\:text-white:not(.keep-white) {
+    color: var(--txt-gray-100) !important;
+  }
+  .focus\:text-white:focus:not(.keep-white) {
+    color: var(--txt-gray-100) !important;
+  }
+  .active\:text-white:active:not(.keep-white) {
+    color: var(--txt-gray-100) !important;
+  }
+
+  /* Map bright hover green text colors to readable dark teal in light mode */
+  .group:hover .group-hover\:text-primary-300 {
+    color: var(--color-primary-600) !important;
+  }
+  .group:hover .group-hover\:text-primary-400 {
+    color: var(--color-primary-600) !important;
+  }
+  .hover\:text-primary-300:hover {
+    color: var(--color-primary-600) !important;
+  }
+  .hover\:text-primary-400:hover {
+    color: var(--color-primary-600) !important;
+  }
+
+  /* Specific overrides for low-opacity white elements */
+  .text-white\/10 {
+    color: rgba(0, 0, 0, 0.08) !important;
+  }
+  .text-white\/50 {
+    color: rgba(0, 0, 0, 0.6) !important;
+  }
+  .text-white\/70 {
+    color: rgba(0, 0, 0, 0.8) !important;
+  }
+
+  /* Force all text on the back face of the flip card to stay light because its background is always dark green */
+  .flip-card div[style*="rotateY(180deg)"],
+  .flip-card div[style*="rotateY(180deg)"] * {
+    color: #e2e2e2 !important;
+  }
+
+  /* Map bright amber colors to readable dark amber in light mode */
+  .text-amber-300,
+  .text-amber-400 {
+    color: #b45309 !important;
+  }
 }
