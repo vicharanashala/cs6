@@ -2,26 +2,27 @@ import { useState, useEffect } from "react";
 import { 
   UserPlus, DollarSign, BookOpen, Home as HomeIcon, Briefcase, 
   FileText, Building, Award, Cpu, Heart, 
-  Library, Compass, Globe, ArrowRight, Search, Zap, ShieldCheck, HelpCircle, Eye 
+  Library, Compass, Globe, ArrowRight, Search, Zap, ShieldCheck, HelpCircle, Eye,
+  Clock, Laptop, Bot, Users, Notebook
 } from "lucide-react";
 import api from "../api/axios";
 
 // Static mapping for category icons and calibrated WCAG AA contrast colors
 const getCategoryMeta = (index) => {
   const meta = [
-    { icon: UserPlus, colorClass: "text-primary-400 bg-primary-500/10 border-primary-500/20" },
-    { icon: DollarSign, colorClass: "text-emerald-400 bg-emerald-500/10 border-emerald-500/20" },
-    { icon: BookOpen, colorClass: "text-cyan-400 bg-cyan-500/10 border-cyan-500/20" },
-    { icon: HomeIcon, colorClass: "text-teal-400 bg-teal-500/10 border-teal-500/20" },
-    { icon: Briefcase, colorClass: "text-primary-300 bg-primary-400/10 border-primary-400/20" },
-    { icon: FileText, colorClass: "text-emerald-300 bg-emerald-400/10 border-emerald-400/20" },
-    { icon: Building, colorClass: "text-teal-300 bg-teal-400/10 border-teal-400/20" },
-    { icon: Award, colorClass: "text-primary-400 bg-primary-500/10 border-primary-500/20" },
-    { icon: Cpu, colorClass: "text-cyan-300 bg-cyan-400/10 border-cyan-400/20" },
-    { icon: Heart, colorClass: "text-primary-300 bg-primary-400/10 border-primary-400/20" },
-    { icon: Library, colorClass: "text-emerald-400 bg-emerald-500/10 border-emerald-500/20" },
-    { icon: Compass, colorClass: "text-teal-400 bg-teal-500/10 border-teal-500/20" },
-    { icon: Globe, colorClass: "text-cyan-400 bg-cyan-500/10 border-cyan-500/20" }
+    { icon: UserPlus, colorClass: "text-primary-400 bg-primary-500/10 border-primary-500/20" }, // About the internship
+    { icon: Clock, colorClass: "text-primary-400 bg-primary-500/10 border-primary-500/20" },    // Timing and dates
+    { icon: BookOpen, colorClass: "text-primary-400 bg-primary-500/10 border-primary-500/20" }, // NOC (No Objection Certificate)
+    { icon: FileText, colorClass: "text-primary-400 bg-primary-500/10 border-primary-500/20" }, // Selection, offer letter, and certificate
+    { icon: Briefcase, colorClass: "text-primary-400 bg-primary-500/10 border-primary-500/20" }, // Work, mentorship, and projects
+    { icon: Globe, colorClass: "text-primary-400 bg-primary-500/10 border-primary-500/20" },    // Code of conduct — communication channels
+    { icon: Building, colorClass: "text-primary-400 bg-primary-500/10 border-primary-500/20" }, // Interviews Related
+    { icon: Award, colorClass: "text-primary-400 bg-primary-500/10 border-primary-500/20" },    // Certificate
+    { icon: Notebook, colorClass: "text-primary-400 bg-primary-500/10 border-primary-500/20" }, // Rosetta — your internship journal
+    { icon: Laptop, colorClass: "text-primary-400 bg-primary-500/10 border-primary-500/20" },   // Phase 1 — coursework, Vibe LMS, and live sessions
+    { icon: Bot, colorClass: "text-primary-400 bg-primary-500/10 border-primary-500/20" },      // Yaksha Chat Related
+    { icon: Compass, colorClass: "text-primary-400 bg-primary-500/10 border-primary-500/20" },  // ViBe Platform
+    { icon: Users, colorClass: "text-primary-400 bg-primary-500/10 border-primary-500/20" }     // Team Formation
   ];
   return meta[index % meta.length];
 };
