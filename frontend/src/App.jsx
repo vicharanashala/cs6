@@ -116,6 +116,7 @@ function App() {
       <main className="flex-1">
         {viewState === "home" && (
           <Home 
+            currentUser={currentUser}
             categories={categories}
             onCategorySelect={(cat) => {
               setSelectedCategory(cat);
@@ -128,6 +129,7 @@ function App() {
               setBackView("home");
               setViewState("question");
             }}
+            onAuthRequired={() => setIsAuthOpen(true)}
           />
         )}
 
@@ -182,7 +184,12 @@ function App() {
       <AuthModal 
         isOpen={isAuthOpen}
         onClose={() => setIsAuthOpen(false)}
-        onAuthSuccess={(user) => setCurrentUser(user)}
+        onAuthSuccess={(user) => {
+          setCurrentUser(user);
+          if (initialTab === "cohort-pulse" || initialTab === "support") {
+            setViewState("profile");
+          }
+        }}
         initialMode={initialTab === "register" ? "register" : "login"}
       />
 

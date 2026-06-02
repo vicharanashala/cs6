@@ -3,7 +3,8 @@ import {
   UserPlus, DollarSign, BookOpen, Home as HomeIcon, Briefcase, 
   FileText, Building, Award, Cpu, Heart, 
   Library, Compass, Globe, ArrowRight, Search, Zap, ShieldCheck, HelpCircle, Eye,
-  Clock, Laptop, Bot, Users, Notebook
+  Clock, Laptop, Bot, Users, Notebook, Activity,
+  Flame, CheckCircle, ThumbsUp
 } from "lucide-react";
 import api from "../api/axios";
 
@@ -56,10 +57,81 @@ const categoryDescriptions = {
   "Yaksha Chat": "Help with accessing and using the Yaksha support and guidance system."
 };
 
-const Home = ({ categories = [], onCategorySelect, onAskClick, onQuestionSelect }) => {
+const Home = ({ currentUser, categories = [], onCategorySelect, onAskClick, onQuestionSelect, onAuthRequired }) => {
   const [searchQuery, setSearchQuery] = useState("");
   const [searchResults, setSearchResults] = useState({ faqs: [], questions: [] });
   const [isSearching, setIsSearching] = useState(false);
+  const [activeTab, setActiveTab] = useState("categories");
+  const [clickedCohortPulse, setClickedCohortPulse] = useState(false);
+  const [cohortData, setCohortData] = useState(null);
+  const [loadingCohort, setLoadingCohort] = useState(false);
+
+  useEffect(() => {
+    if (currentUser && clickedCohortPulse) {
+      setActiveTab("cohort-pulse");
+      setClickedCohortPulse(false);
+    }
+  }, [currentUser, clickedCohortPulse]);
+
+  useEffect(() => {
+    const fetchCohortData = async () => {
+      if (activeTab === "cohort-pulse" && currentUser) {
+        setLoadingCohort(true);
+        try {
+          const response = await api.get("/cohort-pulse");
+          if (response.data.success) {
+            setCohortData(response.data.data);
+          }
+        } catch (error) {
+          console.error("Error fetching cohort data:", error);
+        } finally {
+          setLoadingCohort(false);
+        }
+      }
+    };
+    fetchCohortData();
+  }, [activeTab, currentUser]);
+
+  const handleCohortPulseTabClick = () => {
+    if (!currentUser) {
+      setClickedCohortPulse(true);
+      onAuthRequired();
+    } else {
+      setActiveTab("cohort-pulse");
+    }
+  };
+
+  const handleHelpfulVoteLocal = async (e, questionId) => {
+    e.stopPropagation();
+    try {
+      const response = await api.post(`/questions/${questionId}/helpful`);
+      if (response.data.success) {
+        setCohortData(prev => {
+          if (!prev) return prev;
+          const updatedRising = prev.risingIssues?.map(q => {
+            if (q._id === questionId) {
+              const isVoted = q.helpfulVotes?.includes(currentUser._id);
+              const helpfulVotes = isVoted 
+                ? q.helpfulVotes.filter(id => id !== currentUser._id)
+                : [...(q.helpfulVotes || []), currentUser._id];
+              return {
+                ...q,
+                helpfulVotes,
+                helpfulVotesCount: helpfulVotes.length
+              };
+            }
+            return q;
+          });
+          return {
+            ...prev,
+            risingIssues: updatedRising
+          };
+        });
+      }
+    } catch (error) {
+      console.error("Error voting helpful:", error);
+    }
+  };
 
   useEffect(() => {
     const performSearch = async () => {
@@ -259,68 +331,226 @@ const Home = ({ categories = [], onCategorySelect, onAskClick, onQuestionSelect 
         </section>
       ) : (
         <section className="mb-12">
-          <div className="flex justify-between items-center mb-6">
-            <h3 className="text-sm font-bold tracking-wider text-gray-400 uppercase">
-              Browse Category Portals ({filteredCategories.length})
-            </h3>
+          {/* Tab Headers */}
+          <div className="flex justify-center border-b border-white/10 mb-8 gap-8">
+            <button
+              onClick={() => setActiveTab("categories")}
+              className={`pb-4 text-sm font-bold uppercase tracking-wider transition-colors relative cursor-pointer ${
+                activeTab === "categories"
+                  ? "text-primary-400 font-extrabold"
+                  : "text-gray-400 hover:text-white"
+              }`}
+            >
+              FAQ Categories ({filteredCategories.length})
+              {activeTab === "categories" && (
+                <div className="absolute bottom-0 left-0 right-0 h-0.5 bg-primary-400" />
+              )}
+            </button>
+            <button
+              onClick={handleCohortPulseTabClick}
+              className={`pb-4 text-sm font-bold uppercase tracking-wider transition-colors relative cursor-pointer ${
+                activeTab === "cohort-pulse"
+                  ? "text-primary-400 font-extrabold"
+                  : "text-gray-400 hover:text-white"
+              }`}
+            >
+              Cohort Pulse
+              {activeTab === "cohort-pulse" && (
+                <div className="absolute bottom-0 left-0 right-0 h-0.5 bg-primary-400" />
+              )}
+            </button>
           </div>
 
-          <div className="grid gap-8 grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-5" style={{ perspective: "1000px" }}>
-            {filteredCategories.map((cat, index) => {
-              const { icon: Icon, colorClass } = getCategoryMeta(index);
-              const formattedNumber = String(index + 1).padStart(2, "0");
+          {/* Tab Contents */}
+          {activeTab === "categories" && (
+            <div className="grid gap-6 grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-5" style={{ perspective: "1000px" }}>
+              {filteredCategories.map((cat, index) => {
+                const { icon: Icon, colorClass } = getCategoryMeta(index);
+                const formattedNumber = String(index + 1).padStart(2, "0");
 
-              return (
-                <div
-                  key={cat._id}
-                  onClick={() => onCategorySelect(cat)}
-                  className="flip-card relative rounded-xl border border-white/5 bg-surface-light hover:border-primary-500/15 shadow-sm cursor-pointer"
-                >
-                  {/* ── Front Face ── */}
+                return (
                   <div
-                    className="absolute inset-0 flex flex-col justify-between p-4 backface-hidden"
-                    style={{ backfaceVisibility: "hidden", WebkitBackfaceVisibility: "hidden" }}
+                    key={cat._id}
+                    onClick={() => onCategorySelect(cat)}
+                    className="flip-card relative rounded-xl border border-white/5 bg-surface-light hover:border-primary-500/15 shadow-sm cursor-pointer"
                   >
-                    <span className="absolute top-3 right-3 text-[10px] font-black text-white/10">
-                      {formattedNumber}
-                    </span>
+                    {/* ── Front Face ── */}
+                    <div
+                      className="absolute inset-0 flex flex-col justify-between p-4 backface-hidden"
+                      style={{ backfaceVisibility: "hidden", WebkitBackfaceVisibility: "hidden" }}
+                    >
+                      <span className="absolute top-3 right-3 text-[10px] font-black text-white/10">
+                        {formattedNumber}
+                      </span>
 
-                    <div>
-                      <div className={`mb-3 flex h-10 w-10 items-center justify-center rounded-lg border ${colorClass}`}>
-                        <Icon size={18} strokeWidth={2} />
+                      <div>
+                        <div className={`mb-3 flex h-10 w-10 items-center justify-center rounded-lg border ${colorClass}`}>
+                          <Icon size={18} strokeWidth={2} />
+                        </div>
+                        <h4 className="text-sm font-extrabold text-gray-300 leading-tight">
+                          {cat.name}
+                        </h4>
                       </div>
-                      <h4 className="text-sm font-extrabold text-gray-300 leading-tight">
-                        {cat.name}
-                      </h4>
+
+                      <div className="flex items-center justify-between border-t border-white/5 pt-3">
+                        <span className="text-[10px] font-bold text-gray-400">
+                          {cat.questionCount || 0} solutions
+                        </span>
+                        <div className="flex h-6 w-6 items-center justify-center rounded-full bg-surface-light/5 text-gray-400 shadow-sm">
+                          <ArrowRight size={12} />
+                        </div>
+                      </div>
                     </div>
 
-                    <div className="flex items-center justify-between border-t border-white/5 pt-3">
-                      <span className="text-[10px] font-bold text-gray-400">
-                        {cat.questionCount || 0} solutions
-                      </span>
-                      <div className="flex h-6 w-6 items-center justify-center rounded-full bg-surface-light/5 text-gray-400 shadow-sm">
+                    {/* ── Back Face ── */}
+                    <div
+                      className="absolute inset-0 flex flex-col items-start justify-center p-4 rounded-xl bg-gradient-to-br from-[#034d33] to-[#023c27]"
+                      style={{ backfaceVisibility: "hidden", WebkitBackfaceVisibility: "hidden", transform: "rotateY(180deg)" }}
+                    >
+                      <p className="text-xs font-medium text-gray-400 leading-relaxed line-clamp-5">
+                        {cat.description || categoryDescriptions[cat.name] || `Official FAQs for the section: ${cat.name}`}
+                      </p>
+                      <div className="mt-4 flex items-center gap-1 text-[10px] font-semibold text-gray-400">
+                        <span>View FAQs</span>
                         <ArrowRight size={12} />
                       </div>
                     </div>
                   </div>
+                );
+              })}
+            </div>
+          )}
 
-                  {/* ── Back Face ── */}
-                  <div
-                    className="absolute inset-0 flex flex-col items-start justify-center p-4 rounded-xl bg-gradient-to-br from-[#034d33] to-[#023c27]"
-                    style={{ backfaceVisibility: "hidden", WebkitBackfaceVisibility: "hidden", transform: "rotateY(180deg)" }}
-                  >
-                    <p className="text-xs font-medium text-gray-400 leading-relaxed line-clamp-5">
-                      {cat.description || categoryDescriptions[cat.name] || `Official FAQs for the section: ${cat.name}`}
-                    </p>
-                    <div className="mt-4 flex items-center gap-1 text-[10px] font-semibold text-gray-400">
-                      <span>View FAQs</span>
-                      <ArrowRight size={12} />
+          {activeTab === "cohort-pulse" && currentUser && (
+            <div className="space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-500">
+              {/* Header */}
+              <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-6 border-b border-white/5 pb-6">
+                <div>
+                  <h2 className="text-2xl font-bold text-white mb-2 flex items-center gap-2">
+                    <Zap className="text-primary-400 animate-pulse" size={24} />
+                    Internship Cohort Pulse
+                  </h2>
+                  <p className="text-xs text-gray-400">
+                    Personalized lifecycle dashboard tracking trending FAQs, common searches, and rising community queries.
+                  </p>
+                </div>
+
+                {cohortData?.phaseInfo && (
+                  <div className="shrink-0 font-sans text-right bg-surface-light border border-white/5 rounded-xl px-4 py-2">
+                    <p className="text-[10px] text-gray-500 uppercase font-semibold">Current Phase</p>
+                    <p className="text-sm font-bold text-primary-400">{cohortData.phaseInfo.name}</p>
+                    <p className="text-xs font-semibold text-gray-400 mt-0.5">Day {cohortData.phaseInfo.currentDay ?? 0}</p>
+                  </div>
+                )}
+              </div>
+
+              {loadingCohort ? (
+                <div className="flex h-32 items-center justify-center">
+                  <div className="h-6 w-6 animate-spin rounded-full border-2 border-primary-400 border-t-transparent" />
+                </div>
+              ) : (
+                <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+                  {/* Column 1: Trending FAQs */}
+                  <div className="space-y-4">
+                    <div className="flex items-center gap-2 border-b border-white/5 pb-2">
+                      <BookOpen size={16} className="text-violet-400" />
+                      <h3 className="text-sm font-bold text-white uppercase tracking-wider">Trending FAQs ({cohortData?.trendingFAQs?.length ?? 0})</h3>
+                    </div>
+                    
+                    <div className="space-y-3 max-h-[500px] overflow-y-auto pr-2">
+                      {cohortData?.trendingFAQs?.length === 0 ? (
+                        <p className="text-xs text-gray-500 italic py-4">No trending FAQs mapped to this phase yet.</p>
+                      ) : (
+                        cohortData?.trendingFAQs?.map(q => (
+                          <div 
+                            key={q._id}
+                            onClick={() => onQuestionSelect(q)}
+                            className="bg-surface-light border border-white/5 hover:border-white/10 hover:bg-surface-lighter transition-all duration-200 rounded-xl p-4 cursor-pointer flex flex-col gap-2.5"
+                          >
+                            <h4 className="text-xs font-bold text-white hover:text-primary-300 line-clamp-2 leading-snug">{q.title}</h4>
+                            <div className="flex justify-between items-center text-[10px] text-gray-500">
+                              <span className="flex items-center gap-1"><Eye size={10} /> {q.views || 0} views</span>
+                              <span className="font-semibold text-primary-400">Official FAQ</span>
+                            </div>
+                          </div>
+                        ))
+                      )}
+                    </div>
+                  </div>
+
+                  {/* Column 2: Rising Issues */}
+                  <div className="space-y-4">
+                    <div className="flex items-center gap-2 border-b border-white/5 pb-2">
+                      <Flame size={16} className="text-amber-400 animate-pulse" />
+                      <h3 className="text-sm font-bold text-white uppercase tracking-wider">Rising Issues ({cohortData?.risingIssues?.length ?? 0})</h3>
+                    </div>
+                    
+                    <div className="space-y-3 max-h-[500px] overflow-y-auto pr-2">
+                      {cohortData?.risingIssues?.length === 0 ? (
+                        <p className="text-xs text-gray-500 italic py-4">No active community queries in this phase.</p>
+                      ) : (
+                        cohortData?.risingIssues?.map(q => (
+                          <div 
+                            key={q._id}
+                            onClick={() => onQuestionSelect(q)}
+                            className="bg-surface-light border border-white/5 hover:border-white/10 hover:bg-surface-lighter transition-all duration-200 rounded-xl p-4 cursor-pointer flex flex-col gap-2.5"
+                          >
+                            <h4 className="text-xs font-bold text-white hover:text-primary-300 line-clamp-2 leading-snug">{q.title}</h4>
+                            <div className="flex justify-between items-center text-[10px] text-gray-500">
+                              <span className="flex items-center gap-1"><Eye size={10} /> {q.views || 0} views</span>
+                              
+                              <button
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  handleHelpfulVoteLocal(e, q._id);
+                                }}
+                                className={`flex items-center gap-1 px-2 py-0.5 rounded border text-[9px] font-bold cursor-pointer ${
+                                  q.helpfulVotes?.includes(currentUser?._id)
+                                    ? "bg-primary-500/20 text-primary-400 border-primary-500/30"
+                                    : "bg-surface border-white/5 text-gray-400 hover:text-white"
+                                }`}
+                              >
+                                <ThumbsUp size={8} />
+                                {q.helpfulVotesCount || 0}
+                              </button>
+                            </div>
+                          </div>
+                        ))
+                      )}
+                    </div>
+                  </div>
+
+                  {/* Column 3: Resolved Notices */}
+                  <div className="space-y-4">
+                    <div className="flex items-center gap-2 border-b border-white/5 pb-2">
+                      <CheckCircle size={16} className="text-emerald-400" />
+                      <h3 className="text-sm font-bold text-white uppercase tracking-wider">Resolved Notices ({cohortData?.resolvedNotices?.length ?? 0})</h3>
+                    </div>
+                    
+                    <div className="space-y-3 max-h-[500px] overflow-y-auto pr-2">
+                      {cohortData?.resolvedNotices?.length === 0 ? (
+                        <p className="text-xs text-gray-500 italic py-4">No recently resolved issues in this phase.</p>
+                      ) : (
+                        cohortData?.resolvedNotices?.map(q => (
+                          <div 
+                            key={q._id}
+                            onClick={() => onQuestionSelect(q)}
+                            className="bg-surface-light border border-white/5 hover:border-white/10 hover:bg-surface-lighter transition-all duration-200 rounded-xl p-4 cursor-pointer flex flex-col gap-2.5"
+                          >
+                            <h4 className="text-xs font-bold text-white hover:text-primary-300 line-clamp-2 leading-snug">{q.title}</h4>
+                            <div className="flex justify-between items-center text-[10px] text-gray-500">
+                              <span className="text-emerald-400 font-semibold flex items-center gap-1"><CheckCircle size={10} /> Resolved</span>
+                              <span>{new Date(q.updatedAt).toLocaleDateString()}</span>
+                            </div>
+                          </div>
+                        ))
+                      )}
                     </div>
                   </div>
                 </div>
-              );
-            })}
-          </div>
+              )}
+            </div>
+          )}
         </section>
       )}
 
