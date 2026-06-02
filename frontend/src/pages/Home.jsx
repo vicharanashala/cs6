@@ -90,7 +90,7 @@ const Home = ({ categories = [], onCategorySelect, onAskClick, onQuestionSelect 
   const filteredCategories = categories;
 
   return (
-    <div className="mx-auto max-w-6xl px-6 py-16">
+    <div className="mx-auto max-w-6xl px-6 pb-16">
       
       {/* ─── Hero Section ────────────────────────────────────────── */}
       <section className="mb-16 text-center hero-gradient rounded-3xl py-16 px-6 relative overflow-hidden max-w-4xl mx-auto" id="hero">
