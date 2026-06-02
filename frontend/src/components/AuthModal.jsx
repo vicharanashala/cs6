@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef } from "react";
-import { X, Lock, Mail, User as UserIcon, ArrowLeft, CheckCircle, KeyRound, ShieldCheck } from "lucide-react";
+import { X, Lock, Mail, User as UserIcon, ArrowLeft, CheckCircle, KeyRound, ShieldCheck, Eye, EyeOff } from "lucide-react";
 import api from "../api/axios";
 
 const AuthModal = ({ isOpen, onClose, onAuthSuccess, initialMode = "login" }) => {
@@ -36,6 +36,11 @@ const AuthModal = ({ isOpen, onClose, onAuthSuccess, initialMode = "login" }) =>
 
   // OTP input refs for auto-focus
   const otpRefs = useRef([]);
+
+  // Password visibility state
+  const [showPassword, setShowPassword] = useState(false);
+  const [showNewPassword, setShowNewPassword] = useState(false);
+  const [showConfirmPassword, setShowConfirmPassword] = useState(false);
 
   // Countdown timer for OTP resend
   useEffect(() => {
@@ -468,13 +473,21 @@ const AuthModal = ({ isOpen, onClose, onAuthSuccess, initialMode = "login" }) =>
               <div className="relative">
                 <Lock className="absolute top-3 left-3 h-4 w-4 text-gray-500" />
                 <input
-                  type="password"
+                  type={showNewPassword ? "text" : "password"}
                   value={newPassword}
                   onChange={(e) => { setNewPassword(e.target.value); setError(""); }}
                   required
                   placeholder="Min 8 chars, 1 uppercase, 1 digit"
-                  className="w-full rounded-lg border border-white/10 bg-surface py-2.5 pl-10 pr-4 text-sm text-white placeholder-gray-600 focus:border-primary-400/50 focus:outline-none"
+                  className="w-full rounded-lg border border-white/10 bg-surface py-2.5 pl-10 pr-10 text-sm text-white placeholder-gray-600 focus:border-primary-400/50 focus:outline-none"
                 />
+                <button
+                  type="button"
+                  onClick={() => setShowNewPassword(!showNewPassword)}
+                  className="absolute top-3 right-3 text-gray-500 hover:text-gray-300 transition-colors"
+                  aria-label={showNewPassword ? "Hide password" : "Show password"}
+                >
+                  {showNewPassword ? <EyeOff size={16} /> : <Eye size={16} />}
+                </button>
               </div>
             </div>
 
@@ -485,13 +498,21 @@ const AuthModal = ({ isOpen, onClose, onAuthSuccess, initialMode = "login" }) =>
               <div className="relative">
                 <Lock className="absolute top-3 left-3 h-4 w-4 text-gray-500" />
                 <input
-                  type="password"
+                  type={showConfirmPassword ? "text" : "password"}
                   value={confirmPassword}
                   onChange={(e) => { setConfirmPassword(e.target.value); setError(""); }}
                   required
                   placeholder="Re-enter your new password"
-                  className="w-full rounded-lg border border-white/10 bg-surface py-2.5 pl-10 pr-4 text-sm text-white placeholder-gray-600 focus:border-primary-400/50 focus:outline-none"
+                  className="w-full rounded-lg border border-white/10 bg-surface py-2.5 pl-10 pr-10 text-sm text-white placeholder-gray-600 focus:border-primary-400/50 focus:outline-none"
                 />
+                <button
+                  type="button"
+                  onClick={() => setShowConfirmPassword(!showConfirmPassword)}
+                  className="absolute top-3 right-3 text-gray-500 hover:text-gray-300 transition-colors"
+                  aria-label={showConfirmPassword ? "Hide password" : "Show password"}
+                >
+                  {showConfirmPassword ? <EyeOff size={16} /> : <Eye size={16} />}
+                </button>
               </div>
               {confirmPassword && newPassword !== confirmPassword && (
                 <p className="mt-1 text-xs text-red-400">Passwords do not match</p>
@@ -648,14 +669,22 @@ const AuthModal = ({ isOpen, onClose, onAuthSuccess, initialMode = "login" }) =>
                 <div className="relative">
                   <Lock className="absolute top-3 left-3 h-4 w-4 text-gray-500" />
                   <input
-                    type="password"
+                    type={showPassword ? "text" : "password"}
                     name="password"
                     value={formData.password}
                     onChange={handleChange}
                     required
                     placeholder={isLogin ? "••••••••" : "Min 8 chars, 1 uppercase, 1 digit"}
-                    className="w-full rounded-lg border border-white/10 bg-surface py-2.5 pl-10 pr-4 text-sm text-white placeholder-gray-600 focus:border-primary-400/50 focus:outline-none"
+                    className="w-full rounded-lg border border-white/10 bg-surface py-2.5 pl-10 pr-10 text-sm text-white placeholder-gray-600 focus:border-primary-400/50 focus:outline-none"
                   />
+                  <button
+                    type="button"
+                    onClick={() => setShowPassword(!showPassword)}
+                    className="absolute top-3 right-3 text-gray-500 hover:text-gray-300 transition-colors"
+                    aria-label={showPassword ? "Hide password" : "Show password"}
+                  >
+                    {showPassword ? <EyeOff size={16} /> : <Eye size={16} />}
+                  </button>
                 </div>
 
                 {/* Forgot Password link — only on login */}
