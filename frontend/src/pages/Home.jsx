@@ -58,6 +58,7 @@ const categoryDescriptions = {
 };
 
 const Home = ({ currentUser, categories = [], onCategorySelect, onAskClick, onQuestionSelect, onAuthRequired }) => {
+  const isAdmin = currentUser?.role === "admin" || currentUser?.role === "superadmin";
   const [searchQuery, setSearchQuery] = useState("");
   const [searchResults, setSearchResults] = useState({ faqs: [], questions: [] });
   const [isSearching, setIsSearching] = useState(false);
@@ -65,6 +66,13 @@ const Home = ({ currentUser, categories = [], onCategorySelect, onAskClick, onQu
   const [clickedCohortPulse, setClickedCohortPulse] = useState(false);
   const [cohortData, setCohortData] = useState(null);
   const [loadingCohort, setLoadingCohort] = useState(false);
+
+  useEffect(() => {
+    if (isAdmin && activeTab === "cohort-pulse") {
+      setActiveTab("categories");
+    }
+  }, [isAdmin, activeTab]);
+
 
   useEffect(() => {
     if (currentUser && clickedCohortPulse) {
@@ -346,19 +354,21 @@ const Home = ({ currentUser, categories = [], onCategorySelect, onAskClick, onQu
                 <div className="absolute bottom-0 left-0 right-0 h-0.5 bg-primary-400" />
               )}
             </button>
-            <button
-              onClick={handleCohortPulseTabClick}
-              className={`pb-4 text-sm font-bold uppercase tracking-wider transition-colors relative cursor-pointer ${
-                activeTab === "cohort-pulse"
-                  ? "text-primary-400 font-extrabold"
-                  : "text-gray-400 hover:text-white"
-              }`}
-            >
-              Cohort Pulse
-              {activeTab === "cohort-pulse" && (
-                <div className="absolute bottom-0 left-0 right-0 h-0.5 bg-primary-400" />
-              )}
-            </button>
+            {!isAdmin && (
+              <button
+                onClick={handleCohortPulseTabClick}
+                className={`pb-4 text-sm font-bold uppercase tracking-wider transition-colors relative cursor-pointer ${
+                  activeTab === "cohort-pulse"
+                    ? "text-primary-400 font-extrabold"
+                    : "text-gray-400 hover:text-white"
+                }`}
+              >
+                Cohort Pulse
+                {activeTab === "cohort-pulse" && (
+                  <div className="absolute bottom-0 left-0 right-0 h-0.5 bg-primary-400" />
+                )}
+              </button>
+            )}
           </div>
 
           {/* Tab Contents */}

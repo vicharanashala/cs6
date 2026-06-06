@@ -464,6 +464,8 @@ const MyProfile = ({ currentUser, onBack, onQuestionClick, onAskClick, initialTa
 
         setNewQuestions(prev => updateQuestionList(prev).sort((a, b) => (b.helpfulVotesCount || 0) - (a.helpfulVotesCount || 0)));
         setPopularQuestions(prev => updateQuestionList(prev));
+        setAllFaqs(prev => updateQuestionList(prev));
+        setSubmissions(prev => updateQuestionList(prev));
       }
     } catch (err) {
       console.error("Failed to toggle helpful vote:", err);
@@ -478,7 +480,7 @@ const MyProfile = ({ currentUser, onBack, onQuestionClick, onAskClick, initialTa
     try {
       const response = await api.post(`/questions/${questionId}/answers/${answerId}/downvote`);
       if (response.data.success) {
-        setPopularQuestions(prev => prev.map(q => {
+        const updateDownvoteList = (list) => list.map(q => {
           if (q.linkedBestAnswerId?._id === answerId) {
             return {
               ...q,
@@ -492,7 +494,11 @@ const MyProfile = ({ currentUser, onBack, onQuestionClick, onAskClick, initialTa
             };
           }
           return q;
-        }));
+        });
+
+        setPopularQuestions(prev => updateDownvoteList(prev));
+        setAllFaqs(prev => updateDownvoteList(prev));
+        setSubmissions(prev => updateDownvoteList(prev));
         setToast({ message: "Downvote updated successfully", type: "success" });
       }
     } catch (err) {
@@ -1955,29 +1961,125 @@ const MyProfile = ({ currentUser, onBack, onQuestionClick, onAskClick, initialTa
                   <p className="text-xs text-gray-500">Lists all promoted FAQs serving the pre-emptive deflection query engines.</p>
                 </div>
 
-                <div className="rounded-2xl border border-white/10 bg-surface-light p-6 shadow-xl">
-                  {allFaqs.length === 0 ? (
+                {allFaqs.length === 0 ? (
+                  <div className="rounded-2xl border border-white/10 bg-surface-light p-6 shadow-xl">
                     <div className="rounded-xl border border-dashed border-white/10 bg-surface/30 p-12 text-center text-gray-500">
                       No promoted questions found in the FAQ database.
                     </div>
-                  ) : (
-                    <div className="space-y-3.5">
-                      {allFaqs.map((faq) => (
+                  </div>
+                ) : (
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    {allFaqs.map((faq) => {
+                      const hasUpvoted = faq.helpfulVotes?.includes(currentUser?._id);
+                      const hasDownvoted = faq.linkedBestAnswerId?.downvotes?.includes(currentUser?._id);
+
+                      return (
                         <div 
                           key={faq._id}
                           onClick={() => onQuestionClick(faq)}
-                          className="rounded-xl border border-white/5 bg-surface p-4.5 hover:border-white/10 hover:bg-surface-lighter cursor-pointer transition-all duration-200 flex items-center justify-between gap-4"
+                          className="group relative flex flex-col justify-between rounded-2xl border border-white/5 bg-surface-light p-5 cursor-pointer hover:border-white/10 hover:bg-surface-lighter hover:shadow-xl transition-all duration-300 gap-4"
                         >
-                          <div className="min-w-0 flex-1">
-                            <h4 className="text-sm font-bold text-white hover:text-primary-300 truncate mb-1">{faq.title}</h4>
-                            <p className="text-[10px] text-gray-500">Category: {faq.category?.name} • Promoted on {new Date(faq.updatedAt).toLocaleDateString()}</p>
+                          <div className="space-y-3">
+                            {/* Card Header Info */}
+                            <div className="flex justify-between items-center text-[10px] text-gray-500">
+                              <span className="inline-flex items-center gap-1 rounded bg-indigo-500/10 text-indigo-400 border border-indigo-500/20 px-2 py-0.5 font-bold uppercase">
+                                📌 Official FAQ
+                              </span>
+                              <span>Category: {faq.category?.name} • Views: {faq.views || 0}</span>
+                            </div>
+
+                            {/* Question Title */}
+                            <div>
+                              <h4 className="text-base font-bold text-white group-hover:text-primary-300 leading-snug line-clamp-2">
+                                {faq.title}
+                              </h4>
+                              <p className="text-[10px] text-gray-500 mt-1">Promoted on {new Date(faq.updatedAt).toLocaleDateString()}</p>
+                            </div>
+
+                            {/* Best Answer Block */}
+                            {faq.linkedBestAnswerId ? (
+                              <div className="p-3.5 rounded-xl bg-emerald-500/5 border border-emerald-500/10 text-xs text-gray-300">
+                                <div className="flex items-center gap-1.5 text-[10px] font-black text-emerald-400 uppercase tracking-wider mb-1.5">
+                                  <Award size={12} className="shrink-0" />
+                                  Best Answer
+                                </div>
+                                <p className="line-clamp-3 leading-relaxed whitespace-pre-wrap font-sans">
+                                  {faq.linkedBestAnswerId.body}
+                                </p>
+                              </div>
+                            ) : (
+                              <div className="p-3.5 rounded-xl bg-white/5 border border-white/5 text-xs text-gray-500 italic font-sans">
+                                Waiting for a verified solution...
+                              </div>
+                            )}
                           </div>
-                          <ChevronRight size={16} className="text-gray-500 shrink-0" />
+
+                          {/* Card Footer Actions */}
+                          <div className="flex items-center justify-between border-t border-white/5 pt-3 mt-1 flex-wrap gap-2">
+                            <div className="flex items-center gap-2">
+                              {/* Upvote Button */}
+                              <button
+                                onClick={(e) => handleHelpfulVote(e, faq._id)}
+                                className={`flex items-center gap-1 px-2.5 py-1.5 rounded-lg border text-[10px] font-bold transition-all duration-200 ${
+                                  hasUpvoted
+                                    ? "bg-primary-500/20 text-primary-400 border-primary-500/30"
+                                    : "bg-surface border-white/5 text-gray-400 hover:text-white hover:border-white/10"
+                                }`}
+                                title={hasUpvoted ? "Remove upvote" : "Upvote question"}
+                              >
+                                <ThumbsUp size={12} className={hasUpvoted ? "fill-current" : ""} />
+                                <span>{faq.helpfulVotesCount || 0}</span>
+                              </button>
+
+                              {/* Downvote Button */}
+                              <button
+                                onClick={(e) => {
+                                  if (faq.linkedBestAnswerId) {
+                                    handleAnswerDownvote(e, faq._id, faq.linkedBestAnswerId._id);
+                                  } else {
+                                    e.stopPropagation();
+                                  }
+                                }}
+                                disabled={!faq.linkedBestAnswerId}
+                                className={`flex items-center gap-1 px-2.5 py-1.5 rounded-lg border text-[10px] font-bold transition-all duration-200 ${
+                                  !faq.linkedBestAnswerId
+                                    ? "opacity-30 cursor-not-allowed bg-surface border-white/5 text-gray-600"
+                                    : hasDownvoted
+                                    ? "bg-red-500/20 text-red-400 border-red-500/30"
+                                    : "bg-surface border-white/5 text-gray-400 hover:text-white hover:border-white/10"
+                                }`}
+                                title={!faq.linkedBestAnswerId ? "No answer to downvote" : hasDownvoted ? "Remove downvote" : "Downvote best answer"}
+                              >
+                                <ThumbsDown size={12} className={hasDownvoted ? "fill-current" : ""} />
+                                <span>{faq.linkedBestAnswerId?.downvotes?.length || 0}</span>
+                              </button>
+                            </div>
+
+                            {/* Mark Best Answer Button */}
+                            <button
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                if (faq.linkedBestAnswerId) {
+                                  handleModerationAction(faq.linkedBestAnswerId._id, "mark_best", faq._id);
+                                }
+                              }}
+                              disabled={!faq.linkedBestAnswerId}
+                              className={`flex items-center gap-1.5 rounded-lg py-1.5 px-3 text-[10px] font-bold border transition-all duration-200 ${
+                                !faq.linkedBestAnswerId
+                                  ? "bg-surface border-white/5 text-gray-500 cursor-not-allowed opacity-50"
+                                  : "bg-emerald-500/15 border-emerald-500/30 text-emerald-400 hover:bg-emerald-500/25"
+                              }`}
+                              title={!faq.linkedBestAnswerId ? "No answer available" : "Marked as Best Answer"}
+                            >
+                              <Award size={12} />
+                              <span>Best Answer</span>
+                            </button>
+                          </div>
                         </div>
-                      ))}
-                    </div>
-                  )}
-                </div>
+                      );
+                    })}
+                  </div>
+                )}
               </div>
             )}
 
@@ -2015,37 +2117,133 @@ const MyProfile = ({ currentUser, onBack, onQuestionClick, onAskClick, initialTa
                   </button>
                 </div>
 
-                <div className="rounded-2xl border border-white/10 bg-surface-light p-6 shadow-xl">
-                  {submissionsSubTab === "questions" ? (
-                    submissions.length === 0 ? (
+                {submissionsSubTab === "questions" ? (
+                  submissions.length === 0 ? (
+                    <div className="rounded-2xl border border-white/10 bg-surface-light p-6 shadow-xl">
                       <div className="rounded-xl border border-dashed border-white/10 bg-surface/30 p-12 text-center text-gray-500">
                         You haven't posted any questions yet.
                       </div>
-                    ) : (
-                      <div className="space-y-3">
-                        {submissions.map((q) => (
+                    </div>
+                  ) : (
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                      {submissions.map((q) => {
+                        const hasUpvoted = q.helpfulVotes?.includes(currentUser?._id);
+                        const hasDownvoted = q.linkedBestAnswerId?.downvotes?.includes(currentUser?._id);
+
+                        return (
                           <div 
                             key={q._id}
                             onClick={() => onQuestionClick(q)}
-                            className="rounded-xl border border-white/5 bg-surface p-4 hover:border-white/10 hover:bg-surface-lighter cursor-pointer transition-all duration-200 flex items-center justify-between gap-4"
+                            className="group relative flex flex-col justify-between rounded-2xl border border-white/5 bg-surface-light p-5 cursor-pointer hover:border-white/10 hover:bg-surface-lighter hover:shadow-xl transition-all duration-300 gap-4"
                           >
-                            <div className="min-w-0 flex-1">
-                              <h4 className="text-sm font-bold text-white hover:text-primary-300 truncate mb-1">{q.title}</h4>
-                              <p className="text-[10px] text-gray-500">Category: {q.category?.name} • Created: {new Date(q.createdAt).toLocaleDateString()}</p>
+                            <div className="space-y-3">
+                              {/* Card Header Info */}
+                              <div className="flex justify-between items-center text-[10px] text-gray-500">
+                                <span className={`inline-flex rounded-full px-2 py-0.5 text-[9px] font-bold uppercase border ${
+                                  q.status === 'resolved' 
+                                    ? 'bg-emerald-500/10 text-emerald-400 border border-emerald-500/20'
+                                    : 'bg-amber-500/10 text-amber-400 border border-amber-500/20'
+                                }`}>
+                                  {q.status}
+                                </span>
+                                <span>Category: {q.category?.name} • Views: {q.views || 0}</span>
+                              </div>
+
+                              {/* Question Title */}
+                              <div>
+                                <h4 className="text-base font-bold text-white group-hover:text-primary-300 leading-snug line-clamp-2">
+                                  {q.title}
+                                </h4>
+                                <p className="text-[10px] text-gray-500 mt-1">Asked on {new Date(q.createdAt).toLocaleDateString()}</p>
+                              </div>
+
+                              {/* Best Answer Block */}
+                              {q.linkedBestAnswerId ? (
+                                <div className="p-3.5 rounded-xl bg-emerald-500/5 border border-emerald-500/10 text-xs text-gray-300">
+                                  <div className="flex items-center gap-1.5 text-[10px] font-black text-emerald-400 uppercase tracking-wider mb-1.5">
+                                    <Award size={12} className="shrink-0" />
+                                    Best Answer
+                                  </div>
+                                  <p className="line-clamp-3 leading-relaxed whitespace-pre-wrap font-sans">
+                                    {q.linkedBestAnswerId.body}
+                                  </p>
+                                </div>
+                              ) : (
+                                <div className="p-3.5 rounded-xl bg-white/5 border border-white/5 text-xs text-gray-500 italic font-sans">
+                                  Waiting for a verified solution...
+                                </div>
+                              )}
                             </div>
-                            <span className={`inline-flex rounded-full px-2 py-0.5 text-[9px] font-bold uppercase ${
-                              q.status === 'resolved' 
-                                ? 'bg-emerald-500/10 text-emerald-400 border border-emerald-500/20'
-                                : 'bg-amber-500/10 text-amber-400 border border-amber-500/20'
-                            }`}>
-                              {q.status}
-                            </span>
+
+                            {/* Card Footer Actions */}
+                            <div className="flex items-center justify-between border-t border-white/5 pt-3 mt-1 flex-wrap gap-2">
+                              <div className="flex items-center gap-2">
+                                {/* Upvote Button */}
+                                <button
+                                  onClick={(e) => handleHelpfulVote(e, q._id)}
+                                  className={`flex items-center gap-1 px-2.5 py-1.5 rounded-lg border text-[10px] font-bold transition-all duration-200 ${
+                                    hasUpvoted
+                                      ? "bg-primary-500/20 text-primary-400 border-primary-500/30"
+                                      : "bg-surface border-white/5 text-gray-400 hover:text-white hover:border-white/10"
+                                  }`}
+                                  title={hasUpvoted ? "Remove upvote" : "Upvote question"}
+                                >
+                                  <ThumbsUp size={12} className={hasUpvoted ? "fill-current" : ""} />
+                                  <span>{q.helpfulVotesCount || 0}</span>
+                                </button>
+
+                                {/* Downvote Button */}
+                                <button
+                                  onClick={(e) => {
+                                    if (q.linkedBestAnswerId) {
+                                      handleAnswerDownvote(e, q._id, q.linkedBestAnswerId._id);
+                                    } else {
+                                      e.stopPropagation();
+                                    }
+                                  }}
+                                  disabled={!q.linkedBestAnswerId}
+                                  className={`flex items-center gap-1 px-2.5 py-1.5 rounded-lg border text-[10px] font-bold transition-all duration-200 ${
+                                    !q.linkedBestAnswerId
+                                      ? "opacity-30 cursor-not-allowed bg-surface border-white/5 text-gray-600"
+                                      : hasDownvoted
+                                      ? "bg-red-500/20 text-red-400 border-red-500/30"
+                                      : "bg-surface border-white/5 text-gray-400 hover:text-white hover:border-white/10"
+                                  }`}
+                                  title={!q.linkedBestAnswerId ? "No answer to downvote" : hasDownvoted ? "Remove downvote" : "Downvote best answer"}
+                                >
+                                  <ThumbsDown size={12} className={hasDownvoted ? "fill-current" : ""} />
+                                  <span>{q.linkedBestAnswerId?.downvotes?.length || 0}</span>
+                                </button>
+                              </div>
+
+                              {/* Mark Best Answer Button */}
+                              <button
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  if (q.linkedBestAnswerId) {
+                                    handleModerationAction(q.linkedBestAnswerId._id, "mark_best", q._id);
+                                  }
+                                }}
+                                disabled={!q.linkedBestAnswerId}
+                                className={`flex items-center gap-1.5 rounded-lg py-1.5 px-3 text-[10px] font-bold border transition-all duration-200 ${
+                                  !q.linkedBestAnswerId
+                                    ? "bg-surface border-white/5 text-gray-500 cursor-not-allowed opacity-50"
+                                    : "bg-emerald-500/15 border-emerald-500/30 text-emerald-400 hover:bg-emerald-500/25"
+                                }`}
+                                title={!q.linkedBestAnswerId ? "No answer available" : "Marked as Best Answer"}
+                              >
+                                <Award size={12} />
+                                <span>Best Answer</span>
+                              </button>
+                            </div>
                           </div>
-                        ))}
-                      </div>
-                    )
-                  ) : (
-                    userAnswers.length === 0 ? (
+                        );
+                      })}
+                    </div>
+                  )
+                ) : (
+                  <div className="rounded-2xl border border-white/10 bg-surface-light p-6 shadow-xl">
+                    {userAnswers.length === 0 ? (
                       <div className="rounded-xl border border-dashed border-white/10 bg-surface/30 p-12 text-center text-gray-500">
                         You haven't contributed any answers yet.
                       </div>
@@ -2096,9 +2294,9 @@ const MyProfile = ({ currentUser, onBack, onQuestionClick, onAskClick, initialTa
                           );
                         })}
                       </div>
-                    )
-                  )}
-                </div>
+                    )}
+                  </div>
+                )}
               </div>
             )}
 

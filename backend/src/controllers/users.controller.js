@@ -70,6 +70,7 @@ export const getUserQuestions = async (req, res, next) => {
 
     const questions = await Question.find(query)
       .populate('category', 'name')
+      .populate('linkedBestAnswerId')
       .sort({ createdAt: -1 })
       .limit(limitNum + 1);
 
