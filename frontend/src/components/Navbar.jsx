@@ -15,7 +15,7 @@ const Navbar = ({ currentUser, onLoginClick, onRegisterClick, onAskClick, onLogo
             ?
           </span>
           <span className="text-lg font-semibold tracking-tight text-white">
-            FAQ Portal
+            Samvada
           </span>
         </button>
 

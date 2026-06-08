@@ -177,18 +177,18 @@ const Home = ({ currentUser, categories = [], onCategorySelect, onAskClick, onQu
         <div className="absolute top-0 left-1/2 -translate-x-1/2 w-96 h-48 bg-primary-400/10 rounded-full blur-3xl animate-glow-pulse pointer-events-none" />
         <div className="relative z-10">
           <span className="inline-block mb-5 text-[11px] uppercase tracking-[0.2em] text-primary-400 font-medium px-4 py-1.5 rounded-full border border-primary-500/20 bg-primary-500/5">
-            Everything you need to know
+            No Doubt is Too Small. No Help is Too Little
           </span>
-          <h1 className="mb-4 text-4xl sm:text-5xl font-black tracking-tight leading-tight text-white">
-            Find answers to your{" "}
+          <h1 className="mb-4 text-2xl sm:text-3xl font-black tracking-tight leading-tight text-white">
+            Explore FAQs, find guidance for your internship, {" "}
             <br className="hidden sm:block" />
             <span className="text-gradient-hero">
-              Questions, Instantly.
+              and give back by answering questions or adding new ones for future interns
             </span>
           </h1>
           
           <p className="mx-auto max-w-xl text-sm sm:text-base text-gray-400 mb-8 font-normal leading-relaxed">
-            Search verified knowledge bases, find immediate resolutions to common campus issues, or contribute your own queries to the student crowdsourced portal.
+            Built by interns, for interns.
           </p>
 
           {/* Hero Search Bar */}
