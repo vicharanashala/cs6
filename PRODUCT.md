@@ -19,7 +19,7 @@ A multi-tenant, AI-assisted FAQ and moderation platform built on the MERN stack.
 | Backend | Node.js + Express |
 | Database | MongoDB Atlas |
 | Auth | JWT + bcrypt |
-| AI / Search | Fuse.js |
+| AI / Search | MongoDB Atlas Vector Search, Google Gemini (text-embedding-004), Fuse.js |
 | File Uploads | Cloudinary |
 
 ---
@@ -68,8 +68,8 @@ Categories
 User Writes Question
         │
         ▼
-AI Duplicate Detection       ← Fuse.js fuzzy match against existing FAQs/questions;
-        │                       top similar matches shown to user before submission
+AI Duplicate Detection       ← MongoDB Atlas Vector Search (via Gemini text-embedding-004)
+        │                       with Fuse.js fallback; top similar matches shown to user
         ▼
 Question Stored              ← Saved in MongoDB with tags, category, status
         │
@@ -121,7 +121,7 @@ Three primary actors interact with the platform: **Regular Users**, **Community 
         5. Type Question Draft
                 │
                 ▼
-        6. AI Shows Similar Questions   ← Fuse.js duplicate detection
+        6. AI Shows Similar Questions   ← MongoDB Atlas Vector Search duplicate detection
                 │
                 ├─── Similar Question Exists ──────────────▶ View existing thread → Done ✓
                 │
@@ -137,7 +137,7 @@ Three primary actors interact with the platform: **Regular Users**, **Community 
                 9. Receive Notification when Answer Posted
                         │
                         ▼
-                10. Mark Helpful / View Best Answer → Done ✓
+                10. Toggle "It is Helpful" vote / View Best Answer → Done ✓
 ```
 
 **Key touchpoints:**
@@ -287,7 +287,7 @@ Three primary actors interact with the platform: **Regular Users**, **Community 
 1. Land on Home Page
         │
         ▼
-2. Use Search Bar or Browse by Category/Tag
+2. Use Search Bar (MongoDB Atlas Vector Search + Fuse.js) or Browse by Category/Tag
         │
         ▼
 3. Find Relevant FAQ or Resolved Question
@@ -295,13 +295,13 @@ Three primary actors interact with the platform: **Regular Users**, **Community 
         ▼
 4. Read the Verified Answer
         │
-        ├─── Helpful ──▶ Upvote or Share ✓
+        ├─── Helpful ──▶ Toggle "It is Helpful" vote or Share ✓
         │
         └─── Not Helpful ──▶ Report as Outdated / Ask Follow-up Question
 ```
 
 **Key touchpoints:**
-- Fast search with Fuse.js fuzzy matching
+- Fast search with MongoDB Atlas Vector Search and Fuse.js fallback
 - Clear FAQ badge distinguishing verified answers from community answers
 - One-click report option if an FAQ seems outdated or incorrect
 
@@ -347,12 +347,14 @@ GET  /api/auth/me
 - Tags
 - Status tracking
 - Similar questions suggestions
+- **"It is Helpful" Voting**: Authenticated users can toggle their "Helpful" vote on any question. The system tracks the voter list in `helpfulVotes` (to prevent duplicate voting) and updates `helpfulVotesCount` dynamically in the `Question` model.
 
 **Key APIs:**
 ```
-POST /api/questions
-GET  /api/questions
-GET  /api/questions/:id
+POST   /api/questions
+GET    /api/questions
+GET    /api/questions/:id
+PATCH  /api/questions/:id/helpful
 ```
 
 ---
@@ -362,13 +364,13 @@ GET  /api/questions/:id
 **Goal:** Reduce repeated questions.
 
 **Implementation:**
-1. User types a question in the form
-2. Frontend sends the draft query to the backend
-3. Fuse.js compares it against all existing FAQs and questions
-4. Backend returns the top similar matches
-5. Frontend surfaces suggestions to the user before they submit
-
-**Future upgrade:** Replace Fuse.js with embeddings and vector search for deeper semantic matching.
+1. User types a question in the form.
+2. Frontend sends the draft query to the backend.
+3. Backend generates embeddings using Google Gemini (`text-embedding-004`).
+4. Backend runs a native MongoDB `$vectorSearch` query against the pre-computed embeddings index of existing questions.
+5. If MongoDB Atlas Vector Search is offline or unavailable, the backend automatically falls back to Fuse.js and local NLP string similarity scoring (Levenshtein/Jaro-Winkler).
+6. Backend returns the top similar matches sorted by similarity score.
+7. Frontend surfaces suggestions to the user before they submit.
 
 ---
 
@@ -459,6 +461,28 @@ visible → flagged → under_review → rejected
 
 ---
 
+### 10. Cohort Pulse Lifecycle
+
+**Goal:** Dynamically tailor the landing page categories, trending FAQs, and helper resources to the user's progress through the internship lifecycle, deflection-based browsing, and timeline alignment.
+
+**Implementation:**
+1. User profile stores their official `internshipStartDate` (date of joining).
+2. The backend dynamically computes the user's current day of onboarding (`dayOffset = Current Date - internshipStartDate` in days).
+3. The day offset maps the user into one of exactly 4 phases:
+   - **Onboarding** (Days 0–3): General questions, timings, dates, NOC, and Yaksha chat queries.
+   - **Documentation** (Days 4–7): Rosetta journaling, selection, and offer letter acceptances.
+   - **ViBe** (Days 8–14): ViBe Platform setup, learning progress, and Phase 1 coursework.
+   - **Projects** (Days 15+): Work guidelines, mentorship, coding projects, and team formation.
+4. On the landing page, the "Cohort Pulse" tab surfaces phase-specific metrics (e.g., Rising Issues, Trending FAQs, Phase Description, Progress Tracker) to guide the student.
+5. Access is restricted to authenticated users (guests are prompted to login/signup) and is completely hidden from Administrators/Moderators.
+
+**Key APIs:**
+```
+GET /api/cohort-pulse
+```
+
+---
+
 ## Development Order
 
 | Step | Task |
@@ -470,7 +494,8 @@ visible → flagged → under_review → rejected
 | 5 | Answer system |
 | 6 | Admin moderation dashboard |
 | 7 | FAQ conversion |
-| 8 | Search + duplicate detection (Fuse.js) |
-| 9 | Reports |
-| 10 | UI optimization |
-| 11 | Deployment |
+| 8 | Search + duplicate detection (Vector Search + Fuse.js fallback) |
+| 9 | Cohort Pulse Lifecycle System |
+| 10 | Reports |
+| 11 | UI optimization |
+| 12 | Deployment |

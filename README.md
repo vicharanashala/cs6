@@ -52,7 +52,7 @@ A collaborative FAQ platform for VLED Summership where students can ask question
 * MongoDB Atlas
 * Mongoose
 * JWT Authentication & rotation-based Refresh Tokens
-* Speakeasy (MFA TOTP engine)
+* Custom TOTP cryptography utility
 * bcrypt
 
 ### AI & Search
@@ -165,7 +165,7 @@ cs6/
 │   └── vite.config.js        # Vite compiler and building configuration setup
 │
 ├── ARCHITECTURE.md           # Detailed architecture document (database schema details, tech stack info)
-├── CONTEXT.md                # Maintenance context log tracking goals, challenges, and fixes
+├── context.md                # Maintenance context log tracking goals, challenges, and fixes
 ├── PRODUCT.md                # Comprehensive product design, MVP requirements & user journeys
 ├── LICENSE                   # Open-source license agreement file
 └── README.md                 # Main setup guide and portal documentation
@@ -195,7 +195,7 @@ cs6/
 #### **Documentation & Configuration Files**
 - **`ARCHITECTURE.md`**: Provides a deep architectural breakdown, detailed database schema keys, scale constraints, and network API diagrams.
 - **`PRODUCT.md`**: Details the user Journeys (Seekers, Contributors, Admins, Support filing), functional parameters, and release goals.
-- **`CONTEXT.md`**: Contains a history log of issues encountered during development, bug solutions, and system upgrades.
+- **[context.md](context.md)**: Contains a history log of issues encountered during development, bug solutions, and system upgrades.
 - **`samagama_faq.json`**: An FAQ database seed file used to populate default categories and questions.
 
 ---

@@ -23,7 +23,7 @@
 
 ## Overview
 
-A community-driven FAQ platform where students can post questions, community members can contribute answers, and admins curate a growing knowledge base. AI augments the platform at key points — detecting duplicates, moderating content, and generating collective answers.
+A community-driven FAQ platform where students can post questions, community members can contribute answers, and admins curate a growing knowledge base. AI augments the platform at key points — detecting duplicates and moderating content.
 
 ---
 
@@ -35,68 +35,68 @@ A community-driven FAQ platform where students can post questions, community mem
 | Backend | Node.js + Express |
 | Database | MongoDB Atlas |
 | File Storage | Cloudinary |
-| External AI | OpenAI API |
-| API Layer | REST API via API Gateway |
+| External AI | Google Gemini |
+| API Layer | REST API |
 
 ---
 
 ## High-Level Architecture
 
 ```
-Users (Students / Admins)
+Users (Students / Moderators / Admins / Superadmins)
         │
         ▼
   [Frontend — React]
         │
         ▼
-  [API Gateway / REST API]
+  [REST API]
         │
-   ┌────┴────┐
-   ▼         ▼
-[Backend]  [AI Service Layer]
-   │              │
-   ├── Auth & User Management
-   ├── Question Management     ◄──── Duplicate Detection (Semantic Search)
-   ├── Answer Management       ◄──── Similar FAQ / Question Finder
-   ├── FAQ Management          ◄──── Spam / Abuse Detection
-   ├── Admin & Review Mgmt     ◄──── AI Collective Answer Generation
-   ├── File Upload Service
-   └── Notification (Pluggable)
-        │
-   ┌────┴──────────┐
-   ▼               ▼
-[MongoDB Atlas]  [Cloudinary]   [OpenAI API]
+        ┌────┴────┐
+        ▼         ▼
+ [Backend]  [AI Service Layer]
+    │              │
+    ├── Auth & User Management
+    ├── Question Management     ◄──── Duplicate Detection (MongoDB Atlas Vector Search)
+    ├── Answer Management       ◄──── Similar FAQ / Question Finder
+    ├── FAQ Management          ◄──── Spam / Abuse Detection (Toxicity Check)
+    ├── Admin & Review Mgmt
+    ├── File Upload Service
+    └── Notification (Pluggable)
+         │
+    ┌────┴──────────┐
+    ▼               ▼
+ [MongoDB Atlas]  [Cloudinary]   [Gemini AI]
 ```
 
 ---
 
 ## Frontend
 
-Built with **React**. Serves two user types: Students and Admins.
+Built with **React**. Serves user roles: `user` (Student), `moderator`, `admin`, and `superadmin`.
 
-**Student-facing views:**
+**Student / Guest-facing views:**
 - FAQ Browse & Search (by keyword / category)
 - Ask Question
 - Questions Feed (open, unanswered questions)
 - Answer Question
 - Troubleshooting (niche issue reporting)
 
-**Admin-facing views:**
-- Admin Dashboard
-- Review & Approval queue
-- Moderation controls
+**Moderator / Admin / Superadmin-facing views:**
+- Admin/Moderator Dashboard
+- Review & Approval queue (moderation of answers and reports)
+- User and category management controls
 
 ---
 
 ## Backend
 
-Built with **Node.js + Express**. Exposes a RESTful API consumed by the frontend and the AI service layer.
+Built with **Node.js + Express**. Exposes a RESTful API consumed by the frontend.
 
 ### Modules
 
 **Auth & User Management**
 - Registration, login, session/token management (JWT)
-- Role-based access: Student, Admin
+- Role-based access: `user` (Student), `moderator`, `admin`, and `superadmin`
 
 **Question Management**
 - Create, read, update, delete questions
@@ -114,12 +114,12 @@ Built with **Node.js + Express**. Exposes a RESTful API consumed by the frontend
 - Version control for FAQ entries
 
 **Admin & Review Management**
-- Review queue for flagged content
+- Review queue for flagged content and reported questions/answers
 - Approve / reject answers and questions
 - Mark best answers
 
 **File Upload Service**
-- Upload images/screenshots via Cloudinary
+- Upload images/screenshots via Cloudinary or local temporary directories (with ClamAV antivirus TCP scanning)
 - Attach files to questions or troubleshooting tickets
 
 **Notification Service** *(Pluggable)*
@@ -130,14 +130,13 @@ Built with **Node.js + Express**. Exposes a RESTful API consumed by the frontend
 
 ## AI Service Layer
 
-Integrates with **OpenAI API** and internal semantic search. Runs automatically at defined points in the user journey.
+Integrates with **Google Gemini** (embeddings generation via `text-embedding-004`) and **MongoDB Atlas Vector Search**. Runs automatically at defined points in the user journey.
 
 | Feature | Trigger | Behavior |
 |---|---|---|
-| Duplicate Detection | On question submission | Semantic search across existing questions; shows matches if found |
+| Duplicate Detection | On question submission | MongoDB Atlas Vector Search across existing questions; shows matches if found |
 | Similar FAQ / Question Finder | After duplicate check | Surfaces related FAQs the user may have missed |
 | Spam / Abuse Detection | On answer/question submission | Flags content for review or auto-hides |
-| AI Collective Answer Generation | After community answers collected | Synthesizes a consolidated answer for admin review |
 
 ---
 
@@ -147,10 +146,10 @@ Integrates with **OpenAI API** and internal semantic search. Runs automatically 
 
 Primary data store. Collections:
 
-- `users` — profiles, roles, auth tokens (Student / Admin)
+- `users` — profiles, roles, auth tokens, MFA secrets (`user`, `moderator`, `admin`, `superadmin`)
 - `questions` — content, tags, status, author, timestamps
 - `answers` — content, question ref, author, moderation status, votes
-- `faqs` — approved knowledge base entries
+- `faqs` — approved knowledge base entries (promoted questions with linked best answer)
 - `tickets` — troubleshooting submissions
 - `notifications` — notification queue
 
@@ -170,11 +169,11 @@ File/image storage for:
 ```
 1. Browse FAQ (Search / Categories)
         │
-2. Login / Sign Up
+2. Login / Sign Up (Optionally configure Multi-Factor Authentication)
         │
 3. Post Question
         │
-4. AI Duplicate Detection
+4. AI Duplicate Detection (MongoDB Atlas Vector Search check)
    ├── Yes → Show Similar FAQ / Question
    │         User Chooses: [Cancel] or [Continue]
    └── No  → Continue
@@ -183,17 +182,15 @@ File/image storage for:
         │
 6. Community Answers Collected
         │
-7. AI Moderation (Spam / Abuse Check)
+7. AI Moderation (Spam / Toxicity Check via toxic-bert)
    ├── Pass → Valid Answer visible to student
    └── Flagged → Hidden / Sent for Review
         │
-8. AI Collective Answer Generation
-        │
-9. Admin Review & Approval
-   ├── Approve → Final Answer delivered to student
+8. Admin/Moderator Review & Approval
+   ├── Approve → Final Answer delivered to student / Promoted to FAQ Base
    └── Reject  → Removed from queue
         │
-10. Answer added to FAQ Knowledge Base
+9. Answer added to FAQ Knowledge Base
 ```
 
 ---
@@ -203,7 +200,7 @@ File/image storage for:
 **Goal:** Browse open questions and contribute answers to help others.
 
 ```
-1. Log In
+1. Log In (OTP validation if MFA is enabled)
         │
 2. Browse Open Questions Feed
         │
@@ -211,14 +208,14 @@ File/image storage for:
         │
 4. Write and Submit Answer
         │
-5. AI Moderation Check  ← Toxicity / spam filter runs automatically
+5. AI Moderation Check  ← toxicity & spam filters run automatically
    ├── Flagged → Answer Hidden Temporarily
    │             │
    │             ▼
-   │         Moderator Reviews → Approve / Reject
+   │         Moderator / Admin Reviews → Approve / Reject
    └── Passed
         │
-6. Answer Published (visible to community)
+6. Answer Published (visible to community in open questions detail view)
         │
 7. Admin Marks as Best Answer (if selected)
         │
@@ -236,62 +233,67 @@ Troubleshooting Entry Point
         │
 1. Create Ticket (Describe Issue)
         │
-2. Upload Files / Screenshots (via Cloudinary)
+2. Upload Screenshots (Scanned for viruses via ClamAV)
         │
-3. Discussion & Back-and-Forth (with Admin/Support)
+3. Discussion & Back-and-Forth (with Moderator/Admin/Support)
         │
-4. Admin / Support Responds
+4. Support Responds
         │
-5. Issue Resolved ✓ → Not added to FAQ Base
-   (niche issues stay in ticket system only)
+5. Issue Resolved ✓ → Ticket Closed (not promoted to public FAQ database)
 ```
 
 ---
 
 ## API Design
 
-Base path: `/api/v1`
+Base path: `/api`
 
 ### Key Endpoints
 
 | Method | Endpoint | Description |
 |---|---|---|
-| POST | `/auth/register` | Register new user |
-| POST | `/auth/login` | Login, returns JWT |
-| GET | `/questions` | List questions (filterable) |
-| POST | `/questions` | Submit new question |
-| GET | `/questions/:id` | Get question detail |
+| POST | `/auth/register` | Register new user profile |
+| POST | `/auth/login` | Login, returns JWT (starts MFA flow if enabled) |
+| POST | `/auth/login/mfa` | Submit TOTP MFA token |
+| POST | `/auth/mfa/setup` | Generate TOTP MFA secret and QR code |
+| POST | `/auth/mfa/verify` | Verify OTP token and enable MFA |
+| POST | `/auth/mfa/disable` | Disable MFA for user |
+| GET | `/questions` | List questions (supports cursor pagination and sorting) |
+| POST | `/questions` | Submit new community question |
+| GET | `/questions/:id` | Get question detail with answers |
 | POST | `/questions/:id/answers` | Submit answer to question |
-| GET | `/faq` | Browse FAQ knowledge base |
-| POST | `/tickets` | Submit troubleshooting ticket |
-| GET | `/admin/queue` | Admin review queue |
-| PATCH | `/admin/answers/:id/approve` | Approve answer |
-| PATCH | `/admin/answers/:id/reject` | Reject answer |
+| GET | `/questions/faqs` | Browse official FAQ database |
+| GET | `/cohort-pulse` | Fetch cohort lifecycle phase analytics (Trending FAQs, Rising Issues) |
+| POST | `/tickets` | Submit new troubleshooting ticket |
+| GET | `/moderation/queue` | Retrieve moderation review queue |
+| PATCH | `/moderation/:targetId/approve` | Approve answer/content |
+| PATCH | `/moderation/:targetId/reject` | Reject answer/content |
 
-### AI Endpoints (internal)
+### AI Endpoints (internal checks)
 
 | Method | Endpoint | Description |
 |---|---|---|
-| POST | `/ai/duplicate-check` | Check question for duplicates |
-| POST | `/ai/moderate` | Run moderation on content |
-| POST | `/ai/generate-answer` | Generate collective answer |
+| POST | `/questions/duplicates` | Check title and body similarity against existing question embeddings |
 
 ---
 
 ## Security & Moderation
 
-- **Authentication:** JWT-based auth on all protected routes
-- **Role-based access control:** Student / Admin
-- **AI moderation:** Every question and answer passes through spam/toxicity detection before publication
-- **Admin review gate:** AI-generated answers and flagged content require human approval before going live
-- **File uploads:** Validated and scoped to Cloudinary; no direct server storage
+- **Authentication:** JWT-based stateless session management with access/refresh tokens.
+- **Multi-Factor Authentication (MFA):** Secondary verification using standard TOTP algorithms with AES-256 encrypted database secrets.
+- **Account Lockout Policy:** Protects against brute-force login attempts (account locks for 30 minutes after 5 consecutive failures).
+- **Cross-Origin & CSRF Protections:** Double-submit cookie pattern validation for all state-changing endpoints alongside CORS credentials configuration.
+- **Role-based Access Control:** Restrictions mapped to standard database roles: `user` (Student), `moderator`, `admin`, and `superadmin`.
+- **AI Moderation Gate:** Automatic toxic language filters (toxic-bert) scan questions and answers before publication.
+- **Content Sanitization:** Markdown and input HTML fields are sanitized against Cross-Site Scripting (XSS) injections using DOMPurify.
+- **File Upload Protection:** Direct stream scanning of file uploads via TCP sockets connected to ClamAV daemon hosts to block malware distribution.
 
 ---
 
 ## Scalability Notes
 
-- **Notification service** is pluggable — swap or add providers (email, push, in-app) without touching core logic
-- **MongoDB Atlas** scales horizontally; index `questions` on `status`, `tags`, and `createdAt` for feed performance
-- **AI calls** are async — duplicate detection and moderation should not block the request/response cycle; use a queue (e.g., BullMQ) for heavy AI jobs
-- **Cloudinary** handles CDN and transformation out of the box
-- **FAQ knowledge base** can be cached (Redis or in-memory) since it's read-heavy and infrequently updated
+- **Notification service** is pluggable — swap or add providers (email, push, in-app) without touching core logic.
+- **MongoDB Atlas** scales horizontally; indexing is defined on `lifecycleBucket`, `status`, `category`, `isFAQ`, and `createdAt` to secure feed query efficiency.
+- **AI calls** are modularized — embeddings search pipelines run directly inside MongoDB via Atlas Vector Search, minimizing external API dependencies.
+- **Cloudinary** handles image delivery and transformations out of the box.
+- **FAQ knowledge base** is read-heavy and cached locally/internally to optimize high deflection retrieval speeds.

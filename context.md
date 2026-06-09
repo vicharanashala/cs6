@@ -32,8 +32,7 @@ The platform is designed with automated moderation and duplicate prevention syst
 
 ### AI & Natural Language Processing (NLP)
 - **Vector Search Engine**: MongoDB Atlas Vector Search
-- **Embeddings Generators**: OpenAI `text-embedding-3-small` (1536 dims) or Gemini `text-embedding-004` (768 dims) REST APIs
-- **Moderation Model**: `unitary/toxic-bert` hosted on Hugging Face Serverless Inference API
+- **Embeddings Generators**: Gemini `text-embedding-004` (768 dims) REST APIs
 - **Fallback Engines**: Local Regular Expression / word-lists (for moderation) and custom Jaccard Similarity / Overlap coefficients (for duplicate search)
 
 ---
@@ -150,7 +149,7 @@ graph TD
 
 ### IX. Authentication Hardening & MFA via TOTP
 - **Token Security**: Implemented short-lived (15 min) JWT access tokens combined with secure, rotation-based refresh tokens.
-- **MFA Flow**: Integrated Multi-Factor Authentication via TOTP (using Speakeasy). Users can enable/disable MFA dynamically, generating QR codes to pair with Google Authenticator.
+- **MFA Flow**: Integrated Multi-Factor Authentication via TOTP (using custom TOTP cryptography utility). Users can enable/disable MFA dynamically, generating QR codes to pair with Google Authenticator.
 - **Lockout Mechanism**: Locked user accounts for 15 minutes after 5 consecutive failed login attempts to prevent brute-force attacks.
 
 ### X. CSRF and CORS Security Integration
